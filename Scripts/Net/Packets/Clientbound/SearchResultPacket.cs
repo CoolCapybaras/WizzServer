@@ -16,7 +16,7 @@ namespace Net.Packets.Clientbound
 
 		public SearchResultPacket(Quiz[] quizzes)
 		{
-			Quizzes = quizzes;
+			this.Quizzes = quizzes;
 		}
 
 		public static SearchResultPacket Deserialize(byte[] data)

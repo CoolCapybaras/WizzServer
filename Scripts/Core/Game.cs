@@ -8,7 +8,7 @@ namespace WizzServer
 		private GameQuiz quiz;
 		private QuizQuestion currentQuestion;
 		private Dictionary<int, int> globalScore;
-		private DateTime answerStartTime;
+		private DateTimeOffset answerStartTime;
 		private bool isAnswerAllowed;
 		private int answers;
 		private bool isStarted;
@@ -56,7 +56,7 @@ namespace WizzServer
 				await Task.Delay(currentQuestion.Countdown * 1000);
 
 				isAnswerAllowed = true;
-				answerStartTime = DateTime.Now;
+				answerStartTime = DateTimeOffset.Now;
 
 				for (int i = 0; i < currentQuestion.Time; i++)
 				{
@@ -85,7 +85,7 @@ namespace WizzServer
 		public void OnAnswer(Client client, int id)
 		{
 			if (!isAnswerAllowed) return;
-			globalScore[client.Id] += (int)(id == currentQuestion.RightAnswer ? ((currentQuestion.Time * 1000) - (DateTime.Now - answerStartTime).TotalMilliseconds) / 300 : 0);
+			globalScore[client.Id] += (int)(id == currentQuestion.RightAnswer ? ((currentQuestion.Time * 1000) - (DateTimeOffset.Now - answerStartTime).TotalMilliseconds) / 300 : 0);
 			answers++;
 		}
 

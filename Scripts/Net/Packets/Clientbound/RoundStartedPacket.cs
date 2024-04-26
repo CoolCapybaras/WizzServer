@@ -7,7 +7,7 @@ namespace Net.Packets.Clientbound
 	{
 		public int Id => 19;
 
-		public QuizQuestion question { get; set; }
+		public QuizQuestion Question { get; set; }
 
 		public RoundStartedPacket()
 		{
@@ -16,7 +16,7 @@ namespace Net.Packets.Clientbound
 
 		public RoundStartedPacket(QuizQuestion question)
 		{
-			this.question = question;
+			this.Question = question;
 		}
 
 		public static RoundStartedPacket Deserialize(byte[] data)
@@ -35,27 +35,27 @@ namespace Net.Packets.Clientbound
 
 		public void Populate(WizzStream stream)
 		{
-			question = new QuizQuestion();
-			question.Question = stream.ReadString();
+			Question = new QuizQuestion();
+			Question.Question = stream.ReadString();
 			int count = stream.ReadVarInt();
 			string[] answers = new string[count];
 			for (int i = 0; i < count; i++)
 				answers[i] = stream.ReadString();
-			question.Image = stream.ReadImage();
-			question.Time = stream.ReadVarInt();
-			question.Countdown = stream.ReadVarInt();
+			Question.Image = stream.ReadImage();
+			Question.Time = stream.ReadVarInt();
+			Question.Countdown = stream.ReadVarInt();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
-			packetStream.WriteString(question.Question);
-			packetStream.WriteVarInt(question.Answers.Length);
-			for (int i = 0; i < question.Answers.Length; i++)
-				packetStream.WriteString(question.Answers[i]);
-			packetStream.WriteImage(question.Image);
-			packetStream.WriteVarInt(question.Time);
-			packetStream.WriteVarInt(question.Countdown);
+			packetStream.WriteString(Question.Question);
+			packetStream.WriteVarInt(Question.Answers.Length);
+			for (int i = 0; i < Question.Answers.Length; i++)
+				packetStream.WriteString(Question.Answers[i]);
+			packetStream.WriteImage(Question.Image);
+			packetStream.WriteVarInt(Question.Time);
+			packetStream.WriteVarInt(Question.Countdown);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);

@@ -28,7 +28,7 @@ namespace WizzServer
 			this.server = server;
 			this.Id = id;
 
-			this.networkStream = new NetworkStream(socket);
+			this.networkStream = new NetworkStream(this.socket);
 			this.wizzStream = new WizzStream(this.networkStream);
 		}
 

@@ -19,8 +19,8 @@ namespace Net.Packets.Clientbound
 
 		public AuthSuccessPacket(int clientId, string name)
 		{
-			ClientId = clientId;
-			Name = name;
+			this.ClientId = clientId;
+			this.Name = name;
 		}
 
 		public static AuthSuccessPacket Deserialize(byte[] data)
