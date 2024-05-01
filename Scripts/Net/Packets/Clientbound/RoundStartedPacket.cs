@@ -41,6 +41,7 @@ namespace Net.Packets.Clientbound
 			string[] answers = new string[count];
 			for (int i = 0; i < count; i++)
 				answers[i] = stream.ReadString();
+			Question.Answers = answers;
 			Question.Image = stream.ReadImage();
 			Question.Time = stream.ReadVarInt();
 			Question.Countdown = stream.ReadVarInt();

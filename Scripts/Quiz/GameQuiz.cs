@@ -21,14 +21,14 @@
 
 		public void CreateCache()
 		{
-			string domain = Config.GetString("domain");
+			/*string domain = Config.GetString("domain");
 			Directory.CreateDirectory("cache/" + roomId);
 			foreach (QuizQuestion question in Questions)
 			{
 				string url = $"cache/{roomId}/{Utils.RandomId()}.jpg";
 				question.ImagePath = domain + url;
 				File.CreateSymbolicLink(url, Directory.GetCurrentDirectory() + $"/quizzes/{Id}/{question.Id}.jpg");
-			}
+			}*/
 		}
 
 		public void DeleteCache()

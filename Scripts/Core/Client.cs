@@ -119,7 +119,7 @@ namespace WizzServer
 			}
 			catch (Exception e)
 			{
-				Logger.LogError(e.Message);
+				Logger.LogError(e.ToString());
 			}
 			ObjectPool<T>.Shared.Return(packet);
 		}
@@ -133,6 +133,7 @@ namespace WizzServer
 
 		public void OnDisconnect()
 		{
+			server.AuthTokenManager.RemoveToken(this);
 			Room?.OnClientLeave(this);
 			server.Clients.TryRemove(Id, out _);
 

@@ -2,28 +2,41 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using WizzServer.Services;
 
 namespace WizzServer
 {
 	public class Server
 	{
-		//public ConcurrentDictionary<int, AuthToken> AuthTokens { get; } = new ConcurrentDictionary<int, AuthToken>();
-		public ConcurrentDictionary<int, Client> Clients { get; } = new ConcurrentDictionary<int, Client>();
-		public ConcurrentDictionary<int, Room> Rooms { get; } = new ConcurrentDictionary<int, Room>();
-		public ConcurrentDictionary<string, Quiz> Quizzes { get; } = new ConcurrentDictionary<string, Quiz>();
+		public AuthTokenManager AuthTokenManager { get; } = new();
+		public ConcurrentDictionary<int, Client> Clients { get; } = [];
+		public ConcurrentDictionary<int, Room> Rooms { get; } = [];
+		public ConcurrentDictionary<string, Quiz> Quizzes { get; } = [];
 
-		private HttpAuthHandler httpAuthHandler = new HttpAuthHandler();
+		private VkAuthService vkAuthService;
+		private TelegramAuthService telegramAuthService;
 		private TcpListener tcpListener;
 
 		public async Task Start()
 		{
+			if (!File.Exists("profileImages/default.jpg"))
+			{
+				Logger.LogError("Отсутствует стандартная аватарка по пути profileImages/default.jpg");
+				return;
+			}
+
+			Config.Load();
+
 			foreach (string dir in Directory.GetDirectories("quizzes"))
 			{
 				string id = Path.GetFileName(dir);
 				Quizzes.TryAdd(id, JsonConvert.DeserializeObject<Quiz>(File.ReadAllText(dir + "/quiz.json"))!.Init());
 			}
 
-			_ = Task.Run(httpAuthHandler.Start);
+			vkAuthService = new VkAuthService(this);
+			telegramAuthService = new TelegramAuthService(this);
+			_ = Task.Run(vkAuthService.Start);
+			_ = Task.Run(telegramAuthService.Start);
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);
 			tcpListener.Start();
@@ -56,7 +69,8 @@ namespace WizzServer
 		public void Stop()
 		{
 			tcpListener.Stop();
-			httpAuthHandler.Stop();
+			vkAuthService.Stop();
+			telegramAuthService.Stop();
 		}
 	}
 }
