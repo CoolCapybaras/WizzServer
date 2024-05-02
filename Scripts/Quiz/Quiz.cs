@@ -16,7 +16,7 @@ namespace WizzServer
 
 		public Quiz Init()
 		{
-			ImagePath = Config.GetString("domain") + $"quizzes/{Id}.jpg";
+			//ImagePath = Config.GetString("domain") + $"quizzes/{Id}.jpg";
 
 			for (int i = 0; i < Questions.Length; i++)
 			{
