@@ -40,11 +40,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			if (client.Room == null)
-				return ValueTask.CompletedTask;
-
-			client.Room.OnClientLeave(client);
-
+			client.Room?.OnClientLeave(client);
 			return ValueTask.CompletedTask;
 		}
 	}

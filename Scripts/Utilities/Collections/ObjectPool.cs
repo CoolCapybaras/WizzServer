@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace WizzServer
+namespace WizzServer.Utilities.Collections
 {
 	public abstract class ObjectPool<T> where T : new()
 	{

@@ -43,11 +43,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			if (client.Room == null)
-				return ValueTask.CompletedTask;
-
-			client.Room.OnClientAnswer(client, AnswerId);
-
+			client.Room?.OnClientAnswer(client, AnswerId);
 			return ValueTask.CompletedTask;
 		}
 	}

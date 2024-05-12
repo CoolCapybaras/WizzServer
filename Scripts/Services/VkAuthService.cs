@@ -1,7 +1,8 @@
-﻿using Net.Packets.Clientbound;
+﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System.Net;
 using WizzServer.Database;
+using WizzServer.Managers;
 
 namespace WizzServer.Services
 {
@@ -20,6 +21,18 @@ namespace WizzServer.Services
 		}
 
 		public async Task Start()
+		{
+			try
+			{
+				await ProcessService();
+			}
+			catch (Exception e)
+			{
+				Logger.LogError(e.ToString());
+			}
+		}
+
+		private async Task ProcessService()
 		{
 			httpListener.Prefixes.Add($"{Config.HttpHostname}/");
 			httpListener.Start();
@@ -43,7 +56,7 @@ namespace WizzServer.Services
 				string[] args = request.RawUrl!.Split(separators);
 				if (args.Length != 5
 					|| !server.AuthTokenManager.TryGetToken(args[4], out var authToken)
-					|| authToken.ExpirationTime < DateTimeOffset.Now)
+					|| authToken.ExpirationTime < DateTimeOffset.UtcNow)
 				{
 					response.OutputStream.Close();
 					continue;
@@ -64,7 +77,7 @@ namespace WizzServer.Services
 				var timestamp = DateTimeOffset.UtcNow;
 
 				using var db = new ApplicationDbContext();
-				DbUser? user = db.Users.FirstOrDefault(x => x.Realname == realname && x.IsVk);
+				DbUser? user = await db.Users.FirstOrDefaultAsync(x => x.Realname == realname && x.IsVk);
 				if (user == null)
 				{
 					vkResponse = await GetUserInfo((string)vkResponse["access_token"]!);
@@ -84,11 +97,9 @@ namespace WizzServer.Services
 					await db.SaveChangesAsync();
 
 					using var stream = await httpClient.GetStreamAsync((string)vkResponse["photo_100"]!);
-					//client.Id = user.Id;
-					client.IsAuthed = true;
-					client.Name = user.Username;
-					//client.Image = await Image.LoadAsync(stream);
-					//await client.Image.SaveAsJpegAsync($"profileImages/{client.Id}.jpg");
+					var image = await Misc.SaveProfileImage(stream, user.Id);
+
+					client.Auth(user.Id, user.Username, image, token);
 				}
 				else
 				{
@@ -97,13 +108,10 @@ namespace WizzServer.Services
 					user.Lastlogin = timestamp;
 					await db.SaveChangesAsync();
 
-					//client.Id = user.Id;
-					client.IsAuthed = true;
-					client.Name = user.Username;
-					//client.Image = await Image.LoadAsync($"profileImages/{client.Id}.jpg");
+					var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
+					client.Auth(user.Id, user.Username, image, token);
 				}
 
-				client.SendPacket(new AuthResultPacket(client.Id, client.Name, client.Image, token));
 				server.AuthTokenManager.RemoveToken(authToken.Token);
 				response.OutputStream.Close();
 
@@ -115,13 +123,13 @@ namespace WizzServer.Services
 
 		public void Stop() => httpListener.Close();
 
-		public async Task<JObject> GetAccessToken(string code)
+		private async Task<JObject> GetAccessToken(string code)
 		{
 			var response = await httpClient.GetStringAsync($"https://oauth.vk.com/access_token?client_id={Config.VkClientId}&client_secret={Config.VkClientSecret}&redirect_uri={Config.HttpHostname}&code={code}");
 			return JObject.Parse(response);
 		}
 
-		public async Task<JObject> GetUserInfo(string accessToken)
+		private async Task<JObject> GetUserInfo(string accessToken)
 		{
 			var response = await httpClient.GetStringAsync($"https://api.vk.com/method/users.get?fields=photo_100&access_token={accessToken}&v={Config.VkApiVersion}");
 			return (JObject)JObject.Parse(response).SelectToken("response[0]")!;

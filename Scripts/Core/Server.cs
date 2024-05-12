@@ -1,17 +1,18 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using WizzServer.Managers;
 using WizzServer.Services;
+using WizzServer.Utilities.Collections;
 
 namespace WizzServer
 {
 	public class Server
 	{
 		public AuthTokenManager AuthTokenManager { get; } = new();
-		public ConcurrentDictionary<int, Client> Clients { get; } = [];
+		public ConcurrentHashSet<Client> Clients { get; } = [];
 		public ConcurrentDictionary<int, Room> Rooms { get; } = [];
-		public ConcurrentDictionary<string, Quiz> Quizzes { get; } = [];
+		public QuizManager QuizManager { get; } = new();
 
 		private VkAuthService vkAuthService;
 		private TelegramAuthService telegramAuthService;
@@ -26,12 +27,6 @@ namespace WizzServer
 			}
 
 			Config.Load();
-
-			foreach (string dir in Directory.GetDirectories("quizzes"))
-			{
-				string id = Path.GetFileName(dir);
-				Quizzes.TryAdd(id, JsonConvert.DeserializeObject<Quiz>(File.ReadAllText(dir + "/quiz.json"))!.Init());
-			}
 
 			vkAuthService = new VkAuthService(this);
 			telegramAuthService = new TelegramAuthService(this);
@@ -54,15 +49,14 @@ namespace WizzServer
 					break;
 				}
 
-				var client = new Client(this, socket, Utils.RandomGuestId());
+				var client = new Client(this, socket);
 				client.OnConnect();
-				Clients.TryAdd(1, client);
 				_ = Task.Run(client.Start);
 			}
 
 			Logger.LogInfo("Shutting down...");
 
-			foreach (var client in Clients.Values)
+			foreach (var client in Clients)
 				client.Disconnect();
 		}
 

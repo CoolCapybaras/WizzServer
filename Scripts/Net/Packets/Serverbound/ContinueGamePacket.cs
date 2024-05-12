@@ -3,14 +3,14 @@ using WizzServer.Net;
 
 namespace Net.Packets.Serverbound
 {
-	public class StartGamePacket : IPacket
+	public class ContinueGamePacket : IPacket
 	{
-		public int Id => 7;
+		public int Id => 9;
 
-		public static StartGamePacket Deserialize(byte[] data)
+		public static ContinueGamePacket Deserialize(byte[] data)
 		{
 			using var stream = new WizzStream(data);
-			var packet = new StartGamePacket();
+			var packet = new ContinueGamePacket();
 			packet.Populate(stream);
 			return packet;
 		}
@@ -40,7 +40,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Room?.OnGameStart(client);
+			client.Room?.OnGameContinue(client);
 			return ValueTask.CompletedTask;
 		}
 	}

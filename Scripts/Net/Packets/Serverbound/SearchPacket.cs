@@ -1,5 +1,7 @@
-﻿using Net.Packets.Clientbound;
+﻿using Microsoft.EntityFrameworkCore;
+using Net.Packets.Clientbound;
 using WizzServer;
+using WizzServer.Database;
 using WizzServer.Net;
 
 namespace Net.Packets.Serverbound
@@ -42,19 +44,16 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
 			if (!client.IsAuthed)
-				return ValueTask.CompletedTask;
+				return;
 
-			var quizzes = server.Quizzes.Select(x => x.Value)
-				.Where(x => !x.IsHidden && x.Name.Contains(QuizName, StringComparison.OrdinalIgnoreCase))
-				.Take(10)
-				.ToArray();
-
+			using var db = new ApplicationDbContext();
+			var quizzes = db.Quizzes.AsNoTracking().Where(x => EF.Functions.ILike(x.Name, $"{QuizName}%") && x.IsShown).Take(5).ToArray();
+			foreach (var quiz in quizzes)
+				quiz.Image = await File.ReadAllBytesAsync($"quizzes/{quiz.Id}/thumbnail.jpg");
 			client.SendPacket(new SearchResultPacket(quizzes));
-
-			return ValueTask.CompletedTask;
 		}
 	}
 }

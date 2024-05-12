@@ -1,6 +1,6 @@
 ﻿using Net.Packets;
 using Net.Packets.Clientbound;
-using WizzServer.Models;
+using WizzServer.Utilities.Collections;
 
 namespace WizzServer
 {
@@ -10,12 +10,11 @@ namespace WizzServer
 		private Quiz quiz;
 		private Client host;
 		private Game game;
-		private bool isStarted;
+		private int currentClientIdx;
 
 		public int Id { get; set; }
-		public bool IsStarted { get { return isStarted; } }
-
-		public Dictionary<int, Client> Clients { get; } = [];
+		public bool IsStarted { get; set; }
+		public ConcurrentHashSet<Client> Clients { get; set; } = [];
 
 		public Room(Server server, Quiz quiz, int id, Client client)
 		{
@@ -31,48 +30,66 @@ namespace WizzServer
 		public void OnClientJoin(Client client)
 		{
 			client.Room = this;
+			client.RoomId = Interlocked.Increment(ref currentClientIdx);
 
-			Broadcast(new ClientJoinedPacket(new ClientDTO(client)));
+			Broadcast(new ClientJoinedPacket(client));
 
-			Clients.Add(client.Id, client);
+			Clients.Add(client);
 
-			client.SendPacket(new LobbyJoinedPacket(Id, quiz, Clients.Values.Select(x => new ClientDTO(x)).ToArray()));
+			client.SendPacket(new LobbyJoinedPacket(Id, quiz, [.. Clients]));
 		}
 
 		public void OnClientLeave(Client client)
 		{
-			client.Room = null!;
+			Clients.TryRemove(client);
 
-			if (Clients.Count == 1)
+			if (Clients.GetCountNoLocks() <= 1)
 			{
-				server.Rooms.TryRemove(Id, out _);
-				Logger.LogInfo($"Room #{Id} was destroyed");
+				Destroy();
+				return;
 			}
 
-			Clients.Remove(client.Id);
-
-			Broadcast(new ClientLeavedPacket(client.Id));
+			Broadcast(new ClientLeavedPacket(client.RoomId));
 		}
 
 		public void OnGameStart(Client client)
 		{
-			if (client != host || game.IsStarted) return;
+			if (client != host || IsStarted)
+				return;
 
-			isStarted = true;
 			Task.Run(game.Start);
+			IsStarted = true;
 		}
 
 		public void OnClientAnswer(Client client, int id)
 		{
-			game.OnAnswer(client, id);
+			game.OnClientAnswer(client, id);
+		}
+
+		public void OnGameContinue(Client client)
+		{
+			if (client != host)
+				return;
+
+			game.OnGameContinue();
 		}
 
 		public void Broadcast(IPacket packet)
 		{
-			foreach (Client client in Clients.Values)
+			foreach (var client in Clients)
 			{
 				client.SendPacket(packet);
 			}
+		}
+
+		public void Destroy()
+		{
+			foreach (var client in Clients)
+				client.Room = null;
+
+			server.QuizManager.ReturnQuiz(quiz);
+			server.Rooms.TryRemove(Id, out _);
+			Logger.LogInfo($"Room #{Id} was destroyed");
 		}
 	}
 }

@@ -1,32 +1,34 @@
 ﻿using Net.Packets;
 using Net.Packets.Clientbound;
 using Net.Packets.Serverbound;
-using SixLabors.ImageSharp;
 using System.Net;
 using System.Net.Sockets;
 using WizzServer.Net;
+using WizzServer.Utilities.Collections;
 
 namespace WizzServer
 {
 	public class Client : IDisposable
 	{
+		private static readonly byte[] defaultImage = File.ReadAllBytes("profileImages/default.jpg");
+
 		private Server server;
 		private Socket socket;
 		private NetworkStream networkStream;
 		private WizzStream wizzStream;
 		private bool disposed;
 
-		public int Id { get; set; }
+		public int ProfileId { get; set; }
+		public int RoomId { get; set; }
 		public bool IsAuthed { get; set; }
 		public string Name { get; set; }
-		public Image Image { get; set; }
-		public Room Room { get; set; }
+		public byte[] Image { get; set; }
+		public Room? Room { get; set; }
 
-		public Client(Server server, Socket socket, int id)
+		public Client(Server server, Socket socket)
 		{
 			this.socket = socket;
 			this.server = server;
-			this.Id = id;
 
 			this.networkStream = new NetworkStream(this.socket);
 			this.wizzStream = new WizzStream(this.networkStream);
@@ -65,10 +67,16 @@ namespace WizzServer
 						await HandleFromPoolAsync<AnswerGamePacket>(data, this);
 						break;
 					case 9:
-						await HandleFromPoolAsync<UpdateProfilePacket>(data, this);
+						await HandleFromPoolAsync<ContinueGamePacket>(data, this);
 						break;
 					case 10:
+						await HandleFromPoolAsync<UpdateProfilePacket>(data, this);
+						break;
+					case 11:
 						await HandleFromPoolAsync<EditQuizPacket>(data, this);
+						break;
+					case 12:
+						await HandleFromPoolAsync<LogoutPacket>(data, this);
 						break;
 				}
 			}
@@ -124,9 +132,26 @@ namespace WizzServer
 			ObjectPool<T>.Shared.Return(packet);
 		}
 
+		public void Auth(int profileId, string name, byte[]? image = null, string? token = null)
+		{
+			ProfileId = profileId;
+			Name = name;
+			Image = image ?? defaultImage;
+			IsAuthed = true;
+			SendPacket(new AuthResultPacket(ProfileId, Name, Image, token));
+		}
+
+		public void Logout()
+		{
+			Room?.OnClientLeave(this);
+			IsAuthed = false;
+
+			Logger.LogInfo($"{Name} logged out");
+		}
+
 		public void OnConnect()
 		{
-			server.Clients.TryAdd(Id, this);
+			server.Clients.Add(this);
 		}
 
 		public void Disconnect() => wizzStream.Dispose();
@@ -135,16 +160,24 @@ namespace WizzServer
 		{
 			server.AuthTokenManager.RemoveToken(this);
 			Room?.OnClientLeave(this);
-			server.Clients.TryRemove(Id, out _);
+			server.Clients.TryRemove(this);
 
-			if (!IsAuthed) return;
+			if (!IsAuthed)
+				return;
 
-			Logger.LogInfo($"{Name} has left the server!");
+			Logger.LogInfo($"{Name} has left the server");
 		}
 
 		public void SendPacket(IPacket packet)
 		{
-			packet.Serialize(wizzStream);
+			try
+			{
+				packet.Serialize(wizzStream);
+			}
+			catch (Exception e)
+			{
+				Logger.LogError(e.ToString());
+			}
 		}
 
 		public void SendMessage(string text, int type = 0)
@@ -163,7 +196,6 @@ namespace WizzServer
 
 			wizzStream.Dispose();
 			socket.Dispose();
-			Image?.Dispose();
 
 			GC.SuppressFinalize(this);
 		}

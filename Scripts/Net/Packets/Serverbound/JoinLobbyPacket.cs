@@ -5,9 +5,9 @@ namespace Net.Packets.Serverbound
 {
 	public class JoinLobbyPacket : IPacket
 	{
-		private static readonly Dictionary<int, string> easterEggQuizzes = new()
+		private static readonly Dictionary<int, int> easterEggQuizzes = new()
 		{
-			{ 250252, "easteregg" }
+			{ 250252, 9 }
 		};
 
 		public int Id => 5;
@@ -46,46 +46,44 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
 			if (!client.IsAuthed)
-				return ValueTask.CompletedTask;
+				return;
 
-			if (easterEggQuizzes.ContainsKey(LobbyId))
+			if (easterEggQuizzes.TryGetValue(LobbyId, out int quizId))
 			{
-				if (!server.Rooms.ContainsKey(LobbyId))
+				if (!server.Rooms.TryGetValue(LobbyId, out Room? quizRoom))
 				{
-					Quiz quiz = server.Quizzes[easterEggQuizzes[LobbyId]];
-					Room room = new Room(server, quiz, LobbyId, client);
-					server.Rooms.TryAdd(LobbyId, room);
+					Quiz quiz = (await server.QuizManager.GetQuiz(quizId))!;
+					quizRoom = new Room(server, quiz, LobbyId, client);
+					server.Rooms.TryAdd(LobbyId, quizRoom);
 
 					Logger.LogInfo($"{client.Name} created new room #{LobbyId} {quiz.Name}");
-					return ValueTask.CompletedTask;
+					return;
 				}
-				else if (server.Rooms[LobbyId].IsStarted)
+				else if (quizRoom.IsStarted)
 				{
 					client.SendMessage("Unknown error");
-					return ValueTask.CompletedTask;
+					return;
 				}
 
-				server.Rooms[LobbyId].OnClientJoin(client);
-				return ValueTask.CompletedTask;
+				quizRoom.OnClientJoin(client);
+				return;
 			}
 
-			if (!server.Rooms.ContainsKey(LobbyId))
+			if (!server.Rooms.TryGetValue(LobbyId, out Room? room))
 			{
 				client.SendMessage("Lobby doesn't exist");
-				return ValueTask.CompletedTask;
+				return;
 			}
-			else if (server.Rooms[LobbyId].IsStarted)
+			else if (room.IsStarted)
 			{
 				client.SendMessage("Lobby already started");
-				return ValueTask.CompletedTask;
+				return;
 			}
 
-			server.Rooms[LobbyId].OnClientJoin(client);
-
-			return ValueTask.CompletedTask;
+			room.OnClientJoin(client);
 		}
 	}
 }

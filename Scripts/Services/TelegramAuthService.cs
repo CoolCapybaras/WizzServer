@@ -1,7 +1,7 @@
-﻿using Net.Packets.Clientbound;
+﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
-using SixLabors.ImageSharp;
 using WizzServer.Database;
+using WizzServer.Managers;
 
 namespace WizzServer.Services
 {
@@ -18,6 +18,18 @@ namespace WizzServer.Services
 		}
 
 		public async Task Start()
+		{
+			try
+			{
+				await ProcessService();
+			}
+			catch (Exception e)
+			{
+				Logger.LogError(e.ToString());
+			}
+		}
+
+		private async Task ProcessService()
 		{
 			Logger.LogInfo("Telegram auth service started");
 
@@ -42,7 +54,7 @@ namespace WizzServer.Services
 					if (args.Length != 2
 						|| args[0] != "/start"
 						|| !server.AuthTokenManager.TryGetToken(args[1], out var authToken)
-						|| authToken.ExpirationTime < DateTimeOffset.Now)
+						|| authToken.ExpirationTime < DateTimeOffset.UtcNow)
 						continue;
 
 					Client client = authToken.Client;
@@ -53,7 +65,7 @@ namespace WizzServer.Services
 					var timestamp = DateTimeOffset.UtcNow;
 
 					using var db = new ApplicationDbContext();
-					DbUser? user = db.Users.FirstOrDefault(x => x.Realname == realname && !x.IsVk);
+					DbUser? user = await db.Users.FirstOrDefaultAsync(x => x.Realname == realname && !x.IsVk);
 					if (user == null)
 					{
 						user = new DbUser()
@@ -71,11 +83,9 @@ namespace WizzServer.Services
 						await db.SaveChangesAsync();
 
 						using var stream = await httpClient.GetStreamAsync(await GetUserPhoto(realname));
-						//client.Id = user.Id;
-						client.IsAuthed = true;
-						client.Name = user.Username;
-						//client.Image = await Image.LoadAsync(stream);
-						//await client.Image.SaveAsJpegAsync($"profileImages/{client.Id}.jpg");
+						var image = await Misc.SaveProfileImage(stream, user.Id);
+
+						client.Auth(user.Id, user.Username, image, token);
 					}
 					else
 					{
@@ -84,13 +94,10 @@ namespace WizzServer.Services
 						user.Lastlogin = timestamp;
 						await db.SaveChangesAsync();
 
-						//client.Id = user.Id;
-						client.IsAuthed = true;
-						client.Name = user.Username;
-						//client.Image = await Image.LoadAsync($"profileImages/{client.Id}.jpg");
+						var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
+						client.Auth(user.Id, user.Username, image);
 					}
 
-					client.SendPacket(new AuthResultPacket(client.Id, client.Name, client.Image, token));
 					server.AuthTokenManager.RemoveToken(authToken.Token);
 
 					Logger.LogInfo($"{ip} authed as {client.Name} using telegram");
@@ -102,7 +109,7 @@ namespace WizzServer.Services
 
 		public void Stop() => httpClient.Dispose();
 
-		public async Task<string> GetUserPhoto(string realname)
+		private async Task<string> GetUserPhoto(string realname)
 		{
 			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/getUserProfilePhotos?user_id={realname}&limit=1"));
 			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/getFile?file_id={response.SelectToken("result.photos[0][0].file_id")}"));

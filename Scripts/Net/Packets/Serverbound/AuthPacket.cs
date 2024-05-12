@@ -1,4 +1,5 @@
-﻿using Net.Packets.Clientbound;
+﻿using Microsoft.EntityFrameworkCore;
+using Net.Packets.Clientbound;
 using WizzServer;
 using WizzServer.Database;
 using WizzServer.Net;
@@ -91,15 +92,14 @@ namespace Net.Packets.Serverbound
 					return;
 				}
 
-				client.IsAuthed = true;
-				client.Name = Name;
-				client.SendPacket(new AuthResultPacket(client.Id, client.Name, null));
+				client.Auth(0, Name);
+
 				Logger.LogInfo($"{client.GetIP()} authed as {client.Name} anonymously");
 			}
 			else if (Type == AuthType.Token)
 			{
 				using var db = new ApplicationDbContext();
-				var user = db.Users.FirstOrDefault(x => x.Token == Token);
+				var user = await db.Users.FirstOrDefaultAsync(x => x.Token == Token);
 				if (user == null)
 					return;
 
@@ -107,11 +107,9 @@ namespace Net.Packets.Serverbound
 				user.Lastlogin = DateTimeOffset.UtcNow;
 				await db.SaveChangesAsync();
 
-				//client.Id = user.Id;
-				client.IsAuthed = true;
-				client.Name = user.Username;
-				//client.Image = await Image.LoadAsync($"profileImages/{client.Id}.jpg");
-				client.SendPacket(new AuthResultPacket(client.Id, client.Name, client.Image));
+				var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
+				client.Auth(user.Id, user.Username, image);
+
 				Logger.LogInfo($"{user.Ip} authed as {client.Name} using token");
 			}
 			else if (Type == AuthType.VK)
@@ -124,8 +122,6 @@ namespace Net.Packets.Serverbound
 				var token = server.AuthTokenManager.CreateToken(client);
 				client.SendPacket(new AuthResultPacket($"https://t.me/wizz_bot?start={token}"));
 			}
-
-			return;
 		}
 	}
 }

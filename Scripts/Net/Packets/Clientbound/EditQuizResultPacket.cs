@@ -1,16 +1,28 @@
 ﻿using WizzServer;
 using WizzServer.Net;
 
-namespace Net.Packets.Serverbound
+namespace Net.Packets.Clientbound
 {
-	public class StartGamePacket : IPacket
+	public class EditQuizResultPacket : IPacket
 	{
-		public int Id => 7;
+		public int Id => 25;
 
-		public static StartGamePacket Deserialize(byte[] data)
+		public Quiz Quiz { get; set; }
+
+		public EditQuizResultPacket()
+		{
+
+		}
+
+		public EditQuizResultPacket(Quiz quiz)
+		{
+			Quiz = quiz;
+		}
+
+		public static EditQuizResultPacket Deserialize(byte[] data)
 		{
 			using var stream = new WizzStream(data);
-			var packet = new StartGamePacket();
+			var packet = new EditQuizResultPacket();
 			packet.Populate(stream);
 			return packet;
 		}
@@ -23,12 +35,13 @@ namespace Net.Packets.Serverbound
 
 		public void Populate(WizzStream stream)
 		{
-
+			Quiz = Quiz.Deserialize(stream);
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
+			Quiz.Serialize(packetStream, false);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
@@ -40,8 +53,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Room?.OnGameStart(client);
-			return ValueTask.CompletedTask;
+			throw new NotImplementedException();
 		}
 	}
 }
