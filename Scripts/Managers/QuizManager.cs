@@ -7,6 +7,10 @@ namespace WizzServer.Managers
 {
 	public class QuizManager
 	{
+		private readonly JsonSerializer jsonSerializer = new()
+		{
+			Formatting = Formatting.Indented
+		};
 		private ConcurrentDictionary<int, Quiz> cachedQuizzes = new();
 
 		public async Task<Quiz?> GetQuiz(int id)
@@ -22,8 +26,9 @@ namespace WizzServer.Managers
 			if (quiz == null)
 				return null;
 
+			using var file = File.OpenText($"quizzes/{id}/questions.json");
 			quiz.Image = await File.ReadAllBytesAsync($"quizzes/{id}/thumbnail.jpg");
-			quiz.Questions = JsonConvert.DeserializeObject<QuizQuestion[]>($"quizzes/{id}/questions.json")!;
+			quiz.Questions = (QuizQuestion[])jsonSerializer.Deserialize(file, typeof(QuizQuestion[]))!;
 			for (int i = 0; i < quiz.Questions.Length; i++)
 				quiz.Questions[i].Image = await File.ReadAllBytesAsync($"quizzes/{id}/{i}.jpg");
 

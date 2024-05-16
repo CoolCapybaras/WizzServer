@@ -69,14 +69,12 @@ namespace WizzServer
 
 				foreach (var client in room.Clients)
 					client.SendPacket(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
-				await Task.Delay(3000);
 
 				await WaitForContinue();
 
 				room.Broadcast(new RoundEndedPacket(globalScore));
 				answerCount = 0;
 				roundScore.Clear();
-				await Task.Delay(3000);
 
 				if (i < questions.Length - 1)
 					await WaitForContinue();
