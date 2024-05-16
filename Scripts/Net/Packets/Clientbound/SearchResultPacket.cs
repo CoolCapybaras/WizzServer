@@ -5,7 +5,7 @@ namespace Net.Packets.Clientbound
 {
 	public class SearchResultPacket : IPacket
 	{
-		public int Id => 12;
+		public int Id => 14;
 
 		public Quiz[] Quizzes { get; set; }
 
@@ -38,16 +38,7 @@ namespace Net.Packets.Clientbound
 			int count = stream.ReadVarInt();
 			Quizzes = new Quiz[count];
 			for (int i = 0; i < count; i++)
-			{
-				var quiz = new Quiz();
-				quiz.Id = stream.ReadString();
-				quiz.Name = stream.ReadString();
-				quiz.Image = stream.ReadImage();
-				quiz.Description = stream.ReadString();
-				quiz.QuestionsCount = stream.ReadVarInt();
-				quiz.AuthorId = stream.ReadVarInt();
-				Quizzes[i] = quiz;
-			}
+				Quizzes[i] = Quiz.Deserialize(stream);
 		}
 
 		public void Serialize(WizzStream stream)
@@ -55,14 +46,7 @@ namespace Net.Packets.Clientbound
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Quizzes.Length);
 			for (int i = 0; i < Quizzes.Length; i++)
-			{
-				packetStream.WriteString(Quizzes[i].Id);
-				packetStream.WriteString(Quizzes[i].Name);
-				packetStream.WriteImage(Quizzes[i].Image);
-				packetStream.WriteString(Quizzes[i].Description);
-				packetStream.WriteVarInt(Quizzes[i].QuestionsCount);
-				packetStream.WriteVarInt(Quizzes[i].AuthorId);
-			}
+				Quizzes[i].Serialize(packetStream);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);

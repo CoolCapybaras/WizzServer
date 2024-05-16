@@ -1,5 +1,4 @@
-﻿using SixLabors.ImageSharp;
-using WizzServer;
+﻿using WizzServer;
 using WizzServer.Net;
 
 namespace Net.Packets.Clientbound
@@ -14,14 +13,12 @@ namespace Net.Packets.Clientbound
 
 	public class AuthResultPacket : IPacket
 	{
-		private static readonly Image defaultImage = Image.Load("profileImages/default.jpg");
-
-		public int Id => 11;
+		public int Id => 13;
 
 		public AuthResultFlags Flags;
 		public int ClientId { get; set; }
 		public string Name { get; set; }
-		public Image Image { get; set; }
+		public byte[] Image { get; set; }
 		public string Url { get; set; }
 		public string Token { get; set; }
 
@@ -36,24 +33,18 @@ namespace Net.Packets.Clientbound
 			this.Url = url;
 		}
 
-		public AuthResultPacket(int clientId, string name, Image? image)
+		public AuthResultPacket(int clientId, string name, byte[] image, string? token)
 		{
 			this.Flags = AuthResultFlags.Ok;
 			this.ClientId = clientId;
 			this.Name = name;
-			if (image == null)
-				this.Image = defaultImage;
-			else
-				this.Image = image;
-		}
-
-		public AuthResultPacket(int clientId, string name, Image image, string token)
-		{
-			this.Flags = AuthResultFlags.Ok | AuthResultFlags.HasToken;
-			this.ClientId = clientId;
-			this.Name = name;
 			this.Image = image;
-			this.Token = token;
+
+			if (token != null)
+			{
+				this.Token = token;
+				this.Flags |= AuthResultFlags.HasToken;
+			}
 		}
 
 		public static AuthResultPacket Deserialize(byte[] data)

@@ -2,18 +2,19 @@
 
 namespace WizzServer.Database
 {
-    public class ApplicationDbContext : DbContext
-    {
-        public DbSet<DbUser> Users { get; set; }
+	public class ApplicationDbContext : DbContext
+	{
+		public DbSet<DbUser> Users { get; set; }
+		public DbSet<Quiz> Quizzes { get; set; }
 
-        public ApplicationDbContext()
-        {
-            Database.EnsureCreated();
-        }
+		public ApplicationDbContext()
+		{
+			Database.EnsureCreated();
+		}
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=wizz;Username=postgres;Password=11022004");
-        }
-    }
+		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+		{
+			optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=wizz;Username=postgres;Password=11022004");
+		}
+	}
 }

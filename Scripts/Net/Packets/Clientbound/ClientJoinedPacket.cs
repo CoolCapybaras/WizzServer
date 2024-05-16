@@ -1,21 +1,20 @@
 ﻿using WizzServer;
-using WizzServer.Models;
 using WizzServer.Net;
 
 namespace Net.Packets.Clientbound
 {
 	public class ClientJoinedPacket : IPacket
 	{
-		public int Id => 14;
+		public int Id => 16;
 
-		public ClientDTO Client { get; set; }
+		public Client Client { get; set; }
 
 		public ClientJoinedPacket()
 		{
 
 		}
 
-		public ClientJoinedPacket(ClientDTO client)
+		public ClientJoinedPacket(Client client)
 		{
 			this.Client = client;
 		}
@@ -36,7 +35,8 @@ namespace Net.Packets.Clientbound
 
 		public void Populate(WizzStream stream)
 		{
-			Client.Id = stream.ReadVarInt();
+			// Client = new ClientDTO();
+			Client.RoomId = stream.ReadVarInt();
 			Client.Name = stream.ReadString();
 			Client.Image = stream.ReadImage();
 		}
@@ -44,7 +44,7 @@ namespace Net.Packets.Clientbound
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
-			packetStream.WriteVarInt(Client.Id);
+			packetStream.WriteVarInt(Client.RoomId);
 			packetStream.WriteString(Client.Name);
 			packetStream.WriteImage(Client.Image);
 

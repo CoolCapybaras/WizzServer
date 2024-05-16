@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
-namespace WizzServer
+namespace WizzServer.Managers
 {
 	public class AuthToken
 	{
@@ -14,7 +14,7 @@ namespace WizzServer
 		{
 			this.Client = client;
 			this.Token = Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
-			this.ExpirationTime = DateTimeOffset.Now.AddSeconds(60);
+			this.ExpirationTime = DateTimeOffset.UtcNow.AddSeconds(60);
 		}
 	}
 

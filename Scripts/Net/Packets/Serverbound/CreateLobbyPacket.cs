@@ -7,7 +7,7 @@ namespace Net.Packets.Serverbound
 	{
 		public int Id => 4;
 
-		public string QuizId { get; set; }
+		public int QuizId { get; set; }
 
 		public static CreateLobbyPacket Deserialize(byte[] data)
 		{
@@ -25,13 +25,13 @@ namespace Net.Packets.Serverbound
 
 		public void Populate(WizzStream stream)
 		{
-			QuizId = stream.ReadString();
+			QuizId = stream.ReadVarInt();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
-			packetStream.WriteString(QuizId);
+			packetStream.WriteVarInt(QuizId);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
@@ -41,17 +41,23 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
-			if (!client.IsAuthed || !server.Quizzes.ContainsKey(QuizId))
-				return ValueTask.CompletedTask;
+			if (!client.IsAuthed)
+				return;
 
-			int id = Utils.RandomRoomId();
-			var room = new Room(server, server.Quizzes[QuizId], id, client);
+			var quiz = await server.QuizManager.GetQuiz(QuizId);
+			if (quiz == null)
+				return;
+
+			int id;
+
+			do id = Random.Shared.Next(100000, 1000000);
+			while (server.Rooms.ContainsKey(id));
+
+			var room = new Room(server, quiz, id, client);
 			server.Rooms.TryAdd(id, room);
-			Logger.LogInfo($"{client.Name} created new room #{id} {server.Quizzes[QuizId].Name}");
-
-			return ValueTask.CompletedTask;
+			Logger.LogInfo($"{client.Name} created new room #{id} {quiz.Name}");
 		}
 	}
 }

@@ -1,20 +1,21 @@
-﻿using WizzServer;
+﻿using System.Collections.Concurrent;
+using WizzServer;
 using WizzServer.Net;
 
 namespace Net.Packets.Clientbound
 {
 	public class RoundEndedPacket : IPacket
 	{
-		public int Id => 20;
+		public int Id => 23;
 
-		public Dictionary<int, int> Score { get; set; }
+		public ConcurrentDictionary<int, int> Score { get; set; }
 
 		public RoundEndedPacket()
 		{
 
 		}
 
-		public RoundEndedPacket(Dictionary<int, int> score)
+		public RoundEndedPacket(ConcurrentDictionary<int, int> score)
 		{
 			this.Score = score;
 		}
@@ -36,10 +37,10 @@ namespace Net.Packets.Clientbound
 		public void Populate(WizzStream stream)
 		{
 			int count = stream.ReadVarInt();
-			Score = new Dictionary<int, int>();
+			// Score = new Dictionary<int, int>();
 			for (int i = 0; i < count; i++)
 			{
-				Score.Add(stream.ReadVarInt(), stream.ReadVarInt());
+				// Score.Add(stream.ReadVarInt(), stream.ReadVarInt());
 			}
 		}
 

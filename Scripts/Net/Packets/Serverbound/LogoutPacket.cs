@@ -3,14 +3,14 @@ using WizzServer.Net;
 
 namespace Net.Packets.Serverbound
 {
-	public class StartGamePacket : IPacket
+	public class LogoutPacket : IPacket
 	{
-		public int Id => 7;
+		public int Id => 12;
 
-		public static StartGamePacket Deserialize(byte[] data)
+		public static LogoutPacket Deserialize(byte[] data)
 		{
 			using var stream = new WizzStream(data);
-			var packet = new StartGamePacket();
+			var packet = new LogoutPacket();
 			packet.Populate(stream);
 			return packet;
 		}
@@ -40,7 +40,11 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Room?.OnGameStart(client);
+			if (!client.IsAuthed)
+				return ValueTask.CompletedTask;
+
+			client.Logout();
+
 			return ValueTask.CompletedTask;
 		}
 	}

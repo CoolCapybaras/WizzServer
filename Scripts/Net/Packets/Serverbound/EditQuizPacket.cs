@@ -5,9 +5,10 @@ namespace Net.Packets.Serverbound
 {
 	public class EditQuizPacket : IPacket
 	{
-		public int Id => 10;
+		public int Id => 11;
 
 		public int QuizId { get; set; }
+		public Quiz Quiz { get; set; }
 
 		public static EditQuizPacket Deserialize(byte[] data)
 		{
@@ -26,12 +27,14 @@ namespace Net.Packets.Serverbound
 		public void Populate(WizzStream stream)
 		{
 			QuizId = stream.ReadVarInt();
+			Quiz = Quiz.Deserialize(stream);
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(QuizId);
+			Quiz.Serialize(packetStream, false);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);

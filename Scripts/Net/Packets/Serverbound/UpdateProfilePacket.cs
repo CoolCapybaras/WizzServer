@@ -7,13 +7,13 @@ namespace Net.Packets.Serverbound
 {
 	public class UpdateProfilePacket : IPacket
 	{
-		public static readonly Regex NameRegex = new("^[A-Za-zА-Яа-я0-9_]{3,18}$");
+		public static readonly Regex NameRegex = new("^[A-Za-zА-Яа-я0-9_ ]{3,24}$");
 
-		public int Id => 9;
+		public int Id => 10;
 
 		public int Type { get; set; }
 		public string Name { get; set; }
-		public Image Image { get; set; }
+		public byte[] Image { get; set; }
 
 		public static UpdateProfilePacket Deserialize(byte[] data)
 		{
@@ -65,25 +65,35 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
+			if (!client.IsAuthed)
+				return;
+
 			if (!NameRegex.IsMatch(Name))
 			{
-				Image?.Dispose();
 				client.SendMessage("Wrong name");
-				return ValueTask.CompletedTask;
+				return;
 			}
 
 			client.Name = Name;
 
 			if (Type == 0)
 			{
-				Utils.ResizeImage(Image, 100);
-				client.Image?.Dispose();
-				client.Image = Image;
-			}
+				Image image;
+				try
+				{
+					image = SixLabors.ImageSharp.Image.Load(Image);
+				}
+				catch (ImageFormatException)
+				{
+					return;
+				}
 
-			return ValueTask.CompletedTask;
+				client.Image = await Misc.SaveProfileImage(image, client.ProfileId);
+
+				image.Dispose();
+			}
 		}
 	}
 }

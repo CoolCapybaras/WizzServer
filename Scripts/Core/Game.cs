@@ -1,66 +1,65 @@
 ﻿using Net.Packets.Clientbound;
+using System.Collections.Concurrent;
 
 namespace WizzServer
 {
 	public class Game
 	{
 		private Room room;
-		private GameQuiz quiz;
+		private Quiz quiz;
+		private QuizQuestion[] questions;
 		private QuizQuestion currentQuestion;
-		private Dictionary<int, int> globalScore;
+		private ConcurrentDictionary<Client, int> roundScore = new();
+		private ConcurrentDictionary<int, int> globalScore;
 		private DateTimeOffset answerStartTime;
 		private bool isAnswerAllowed;
-		private int answers;
-		private bool isStarted;
-		private bool isEnded;
-
-		public bool IsStarted { get { return isStarted; } }
-		public bool IsEnded { get { return isEnded; } }
+		private int answerCount;
+		private bool continueGame;
 
 		public Game(Room room, Quiz quiz)
 		{
 			this.room = room;
-			this.quiz = new GameQuiz(quiz, room.Id);
+			this.quiz = quiz;
 		}
 
 		public async Task Start()
 		{
 			try
 			{
-				await StartGame();
+				await ProcessGame();
 			}
-			catch (Exception ex)
+			catch (Exception e)
 			{
-				Logger.LogError(ex.ToString());
+				Logger.LogError(e.ToString());
 			}
 		}
 
-		private async Task StartGame()
+		private async Task ProcessGame()
 		{
-			isStarted = true;
-			globalScore = room.Clients.ToDictionary(x => x.Key, x => 0);
-			//quiz.CreateCache();
-			room.Broadcast(new GameStartedPacket(quiz.Name));
+			questions = quiz.GetGameQuestions();
+			globalScore = new ConcurrentDictionary<int, int>(room.Clients.Select(x => new KeyValuePair<int, int>(x.RoomId, 0)));
 
+			room.Broadcast(new GameStartedPacket(quiz.Name, questions));
 			await Task.Delay(3000);
 
 			room.Broadcast(new TimerStartedPacket());
-
 			await Task.Delay(3000);
 
-			while (quiz.Questions.Count > 0)
+			for (int i = 0; i < questions.Length; i++)
 			{
-				currentQuestion = quiz.Questions.Dequeue();
-				room.Broadcast(new RoundStartedPacket(currentQuestion));
+				currentQuestion = questions[i];
 
-				await Task.Delay(currentQuestion.Countdown * 1000);
+				int delay = CalculateDelay();
+				room.Broadcast(new RoundStartedPacket(i, delay));
+				await Task.Delay(delay);
 
+				room.Broadcast(new ShowQuestionPacket());
 				isAnswerAllowed = true;
-				answerStartTime = DateTimeOffset.Now;
+				answerStartTime = DateTimeOffset.UtcNow;
 
-				for (int i = 0; i < currentQuestion.Time; i++)
+				for (int q = 0; q < currentQuestion.Time; q++)
 				{
-					if (answers == room.Clients.Count)
+					if (answerCount >= room.Clients.GetCountNoLocks())
 						break;
 
 					await Task.Delay(1000);
@@ -68,30 +67,47 @@ namespace WizzServer
 
 				isAnswerAllowed = false;
 
-				room.Broadcast(new RightAnswerPacket(currentQuestion.RightAnswer));
-				await Task.Delay(3000);
+				foreach (var client in room.Clients)
+					client.SendPacket(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
+
+				await WaitForContinue();
 
 				room.Broadcast(new RoundEndedPacket(globalScore));
-				answers = 0;
+				answerCount = 0;
+				roundScore.Clear();
 
-				await Task.Delay(5000);
+				if (i < questions.Length - 1)
+					await WaitForContinue();
 			}
 
 			room.Broadcast(new GameEndedPacket(globalScore));
-			//quiz.DeleteCache();
-			isEnded = true;
+			room.Destroy();
 		}
 
-		public void OnAnswer(Client client, int id)
+		public void OnClientAnswer(Client client, int id)
 		{
-			if (!isAnswerAllowed) return;
-			globalScore[client.Id] += (int)(id == currentQuestion.RightAnswer ? ((currentQuestion.Time * 1000) - (DateTimeOffset.Now - answerStartTime).TotalMilliseconds) / 300 : 0);
-			answers++;
+			if (!isAnswerAllowed || roundScore.ContainsKey(client))
+				return;
+
+			Interlocked.Increment(ref answerCount);
+
+			int score = (int)(id == currentQuestion.RightAnswer ? ((currentQuestion.Time * 1000) - (DateTimeOffset.UtcNow - answerStartTime).TotalMilliseconds) * 0.0025f : 0);
+			roundScore.TryAdd(client, score);
+			globalScore[client.RoomId] += score;
 		}
 
-		public void DeleteCache()
+		private async Task WaitForContinue()
 		{
-			quiz.DeleteCache();
+			continueGame = false;
+			while (!continueGame)
+				await Task.Delay(1000);
+		}
+
+		public void OnGameContinue() => continueGame = true;
+
+		private int CalculateDelay()
+		{
+			return Math.Max((int)(currentQuestion.Question.Length * 0.075f), 3) * 1000;
 		}
 	}
 }
