@@ -9,7 +9,7 @@ namespace Net.Packets.Serverbound
 {
 	public class UpdateProfilePacket : IPacket
 	{
-		public static readonly Regex NameRegex = new("^[A-Za-zА-Яа-я0-9_ ]{3,24}$");
+		public static Regex NameRegex { get; } = new("^[A-Za-zА-Яа-я0-9_ ]{3,24}$");
 
 		public int Id => 10;
 
@@ -34,30 +34,16 @@ namespace Net.Packets.Serverbound
 		public void Populate(WizzStream stream)
 		{
 			Type = stream.ReadVarInt();
-			if (Type == 0)
-			{
-				Name = stream.ReadString();
-				Image = stream.ReadImage();
-			}
-			else if (Type == 1)
-			{
-				Name = stream.ReadString();
-			}
+			Name = stream.ReadString();
+			Image = stream.ReadImage();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Type);
-			if (Type == 0)
-			{
-				packetStream.WriteString(Name);
-				packetStream.WriteImage(Image);
-			}
-			else if (Type == 1)
-			{
-				packetStream.WriteString(Name);
-			}
+			packetStream.WriteString(Name);
+			packetStream.WriteImage(Image);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
@@ -83,7 +69,7 @@ namespace Net.Packets.Serverbound
 			if (client.ProfileId != 0)
 			{
 				using var db = new ApplicationDbContext();
-				var user = (await db.Users.FirstOrDefaultAsync(x => x.Id == client.ProfileId))!;
+				var user = await db.Users.FirstAsync(x => x.Id == client.ProfileId);
 				user.Username = Name;
 				await db.SaveChangesAsync();
 

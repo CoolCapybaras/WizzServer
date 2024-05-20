@@ -53,20 +53,16 @@ namespace Net.Packets.Serverbound
 		public void Populate(WizzStream stream)
 		{
 			Type = (AuthType)stream.ReadVarInt();
-			if (Type == AuthType.Anonymous)
-				Name = stream.ReadString();
-			else if (Type == AuthType.Token)
-				Token = stream.ReadString();
+			Name = stream.ReadString();
+			Token = stream.ReadString();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Type);
-			if (Type == AuthType.Anonymous)
-				packetStream.WriteString(Name);
-			else if (Type == AuthType.Token)
-				packetStream.WriteString(Token);
+			packetStream.WriteString(Name);
+			packetStream.WriteString(Token);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);

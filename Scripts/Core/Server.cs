@@ -13,9 +13,9 @@ namespace WizzServer
 		public ConcurrentHashSet<Client> Clients { get; } = [];
 		public ConcurrentDictionary<int, Room> Rooms { get; } = [];
 		public QuizManager QuizManager { get; } = new();
+		public TelegramBotService TelegramBotService { get; set; }
 
 		private VkAuthService vkAuthService;
-		private TelegramAuthService telegramAuthService;
 		private TcpListener tcpListener;
 
 		public async Task Start()
@@ -29,9 +29,9 @@ namespace WizzServer
 			Config.Load();
 
 			vkAuthService = new VkAuthService(this);
-			telegramAuthService = new TelegramAuthService(this);
+			TelegramBotService = new TelegramBotService(this);
 			_ = Task.Run(vkAuthService.Start);
-			_ = Task.Run(telegramAuthService.Start);
+			_ = Task.Run(TelegramBotService.Start);
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);
 			tcpListener.Start();
@@ -64,7 +64,7 @@ namespace WizzServer
 		{
 			tcpListener.Stop();
 			vkAuthService.Stop();
-			telegramAuthService.Stop();
+			TelegramBotService.Stop();
 		}
 	}
 }

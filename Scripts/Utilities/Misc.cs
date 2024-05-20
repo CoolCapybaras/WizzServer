@@ -7,6 +7,12 @@ namespace WizzServer
 {
 	public static class Misc
 	{
+		public static JsonSerializer JsonSerializer { get; } = new()
+		{
+			ContractResolver = new CamelCasePropertyNamesContractResolver(),
+			Formatting = Formatting.Indented
+		};
+
 		public static JsonSerializerSettings JsonSerializerSettings { get; } = new()
 		{
 			ContractResolver = new CamelCasePropertyNamesContractResolver()
@@ -34,7 +40,7 @@ namespace WizzServer
 			using var memoryStream = new MemoryStream();
 			await image.SaveAsJpegAsync(memoryStream);
 
-			using var fileStream = new FileStream($"profileImages/{userId}.jpg", FileMode.Create, FileAccess.ReadWrite, FileShare.Read, 4096, true);
+			using var fileStream = new FileStream($"profileImages/{userId}.jpg", FileMode.Create, FileAccess.Write, FileShare.Read, 4096, true);
 			memoryStream.Position = 0;
 			await memoryStream.CopyToAsync(fileStream);
 

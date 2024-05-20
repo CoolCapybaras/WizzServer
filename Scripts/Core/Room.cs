@@ -36,7 +36,7 @@ namespace WizzServer
 
 			Clients.Add(client);
 
-			client.SendPacket(new LobbyJoinedPacket(Id, quiz, [.. Clients]));
+			client.SendPacket(new LobbyJoinedPacket(Id, quiz, Clients.ToArray()));
 		}
 
 		public void OnClientLeave(Client client)
