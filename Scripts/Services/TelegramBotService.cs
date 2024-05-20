@@ -55,6 +55,9 @@ namespace WizzServer.Services
 					{
 						JObject message = (JObject)update["message"]!;
 
+						if (!message.ContainsKey("text"))
+							continue;
+
 						string[] args = ((string)message["text"]!).Split();
 						if (args.Length != 2
 							|| args[0] != "/start"
@@ -153,7 +156,7 @@ namespace WizzServer.Services
 			return $"https://api.telegram.org/file/bot{Config.TelegramClientSecret}/{response["result"]!["file_path"]}";
 		}
 
-		public async Task SendQuiz(Quiz quiz, int chatId)
+		public async Task SendQuiz(Quiz quiz, string chatId)
 		{
 			await _lock.WaitAsync();
 
@@ -165,7 +168,7 @@ namespace WizzServer.Services
 
 				var content = new MultipartFormDataContent
 				{
-					{ new StringContent(chatId.ToString()), "chat_id" },
+					{ new StringContent(chatId), "chat_id" },
 					{ new StringContent($"[{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media" }
 				};
 
@@ -193,7 +196,7 @@ namespace WizzServer.Services
 
 				var content = new Dictionary<string, string>
 				{
-					{ "chat_id", chatId.ToString() },
+					{ "chat_id", chatId },
 					{ "text", sb.ToString() }
 				};
 
