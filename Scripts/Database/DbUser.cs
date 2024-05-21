@@ -4,7 +4,7 @@
 	{
 		public int Id { get; set; }
 		public string Username { get; set; }
-		public string Realname { get; set; }
+		public long Realname { get; set; }
 		public string Token { get; set; }
 		public string Ip { get; set; }
 		public DateTimeOffset Lastlogin { get; set; }

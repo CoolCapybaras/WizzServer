@@ -3,6 +3,13 @@ using WizzServer.Net;
 
 namespace WizzServer
 {
+	public enum ModerationStatus
+	{
+		NotModerated,
+		InModeration,
+		ModerationComplete
+	}
+
 	public class Quiz
 	{
 		public int Id { get; set; }
@@ -12,7 +19,7 @@ namespace WizzServer
 		public string Description { get; set; }
 		public int QuestionCount { get; set; }
 		public int AuthorId { get; set; }
-		public bool IsShown { get; set; }
+		public ModerationStatus ModerationStatus { get; set; }
 		[NotMapped]
 		public QuizQuestion[] Questions { get; set; }
 		public int ReferenceCount;

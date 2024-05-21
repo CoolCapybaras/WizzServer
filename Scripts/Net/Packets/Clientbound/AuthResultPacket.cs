@@ -64,36 +64,22 @@ namespace Net.Packets.Clientbound
 		public void Populate(WizzStream stream)
 		{
 			Flags = (AuthResultFlags)stream.ReadVarInt();
-			if (Flags.HasFlag(AuthResultFlags.Ok))
-			{
-				ClientId = stream.ReadVarInt();
-				Name = stream.ReadString();
-				Image = stream.ReadImage();
-				if (Flags.HasFlag(AuthResultFlags.HasToken))
-					Token = stream.ReadString();
-			}
-			else if (Flags.HasFlag(AuthResultFlags.HasUrl))
-			{
-				Url = stream.ReadString();
-			}
+			ClientId = stream.ReadVarInt();
+			Name = stream.ReadString();
+			Image = stream.ReadImage();
+			Url = stream.ReadString();
+			Token = stream.ReadString();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Flags);
-			if (Flags.HasFlag(AuthResultFlags.Ok))
-			{
-				packetStream.WriteVarInt(ClientId);
-				packetStream.WriteString(Name);
-				packetStream.WriteImage(Image);
-				if (Flags.HasFlag(AuthResultFlags.HasToken))
-					packetStream.WriteString(Token);
-			}
-			else if (Flags.HasFlag(AuthResultFlags.HasUrl))
-			{
-				packetStream.WriteString(Url);
-			}
+			packetStream.WriteVarInt(ClientId);
+			packetStream.WriteString(Name);
+			packetStream.WriteImage(Image);
+			packetStream.WriteString(Url);
+			packetStream.WriteString(Token);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
