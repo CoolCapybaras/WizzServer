@@ -39,7 +39,7 @@ namespace Net.Packets
 		public void Populate(WizzStream stream)
 		{
 			Type = (EditQuizType)stream.ReadVarInt();
-			if (Type == EditQuizType.Publish)
+			if (Type == EditQuizType.Upload)
 				Quiz = Quiz.Deserialize(stream);
 			else
 				QuizId = stream.ReadVarInt();
@@ -50,7 +50,7 @@ namespace Net.Packets
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Type);
 			if (Type == EditQuizType.Get)
-				Quiz.Serialize(packetStream);
+				Quiz.Serialize(packetStream, false);
 			else
 				packetStream.WriteVarInt(QuizId);
 
@@ -109,8 +109,13 @@ namespace Net.Packets
 					QuizQuestion question = Quiz.Questions[i];
 					if (question.Question.Length > 256)
 					{
-						for (int q = 0; q < i; q++)
-							questionImages[q].Dispose();
+						DisposeImages(questionImages);
+						return;
+					}
+
+					if (question.Answers.Length != 2 && question.Answers.Length != 4)
+					{
+						DisposeImages(questionImages);
 						return;
 					}
 
@@ -118,8 +123,7 @@ namespace Net.Packets
 					{
 						if (answer.Length > 256)
 						{
-							for (int q = 0; q < i; q++)
-								questionImages[q].Dispose();
+							DisposeImages(questionImages);
 							return;
 						}
 					}
@@ -130,8 +134,7 @@ namespace Net.Packets
 					}
 					catch (ImageFormatException)
 					{
-						for (int q = 0; q < i; q++)
-							questionImages[q].Dispose();
+						DisposeImages(questionImages);
 						return;
 					}
 
@@ -146,8 +149,7 @@ namespace Net.Packets
 				}
 				catch (ImageFormatException)
 				{
-					for (int q = 0; q < questionImages.Length; q++)
-						questionImages[q].Dispose();
+					DisposeImages(questionImages);
 					return;
 				}
 
@@ -183,8 +185,7 @@ namespace Net.Packets
 				});
 
 				quizImage.Dispose();
-				for (int i = 0; i < questionImages.Length; i++)
-					questionImages[i].Dispose();
+				DisposeImages(questionImages);
 			}
 			else if (Type == EditQuizType.Delete)
 			{
@@ -223,6 +224,12 @@ namespace Net.Packets
 					QuizId = QuizId
 				});
 			}
+		}
+
+		private static void DisposeImages(Image[] images)
+		{
+			foreach (var image in images)
+				image?.Dispose();
 		}
 	}
 }

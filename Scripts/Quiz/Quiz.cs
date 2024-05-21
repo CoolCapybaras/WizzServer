@@ -19,7 +19,7 @@ namespace WizzServer
 		public string Description { get; set; }
 		public int QuestionCount { get; set; }
 		public int AuthorId { get; set; }
-		public ModerationStatus ModerationStatus;
+		public ModerationStatus ModerationStatus { get; set; }
 		[NotMapped]
 		public QuizQuestion[] Questions { get; set; }
 		public int ReferenceCount;
