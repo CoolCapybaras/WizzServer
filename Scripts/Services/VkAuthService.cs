@@ -72,7 +72,7 @@ namespace WizzServer.Services
 				Client client = authToken.Client;
 
 				var token = AuthTokenManager.GenerateToken();
-				var realname = (string)vkResponse["user_id"]!;
+				var realname = (long)vkResponse["user_id"]!;
 				var ip = client.GetIP();
 				var timestamp = DateTimeOffset.UtcNow;
 

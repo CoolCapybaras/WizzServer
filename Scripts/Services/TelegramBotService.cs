@@ -68,7 +68,7 @@ namespace WizzServer.Services
 						Client client = authToken.Client;
 
 						var token = AuthTokenManager.GenerateToken();
-						var realname = (string)message["from"]!["id"]!;
+						var realname = (long)message["from"]!["id"]!;
 						var ip = client.GetIP();
 						var timestamp = DateTimeOffset.UtcNow;
 
@@ -118,17 +118,17 @@ namespace WizzServer.Services
 
 						using var db = new ApplicationDbContext();
 						var quiz = await db.Quizzes.FirstAsync(x => x.Id == args[0]);
-						if (!quiz.IsModerating)
+						if (quiz.ModerationStatus != ModerationStatus.InModeration)
 						{
 							await ClearQuiz(chatId, messageId, args[2]);
 							continue;
 						}
 
-						quiz.IsModerating = false;
-						quiz.IsShown = args[1] == 1;
+						quiz.ModerationStatus = args[1] == 1 ? ModerationStatus.ModerationComplete : ModerationStatus.NotModerated;
 						await db.SaveChangesAsync();
 
-						string text = quiz.IsShown ? $"✅ Викторина #{quiz.Id} {quiz.Name} была одобрена"
+						string text = quiz.ModerationStatus == ModerationStatus.ModerationComplete
+							? $"✅ Викторина #{quiz.Id} {quiz.Name} была одобрена"
 							: $"❌ Викторина #{quiz.Id} {quiz.Name} была отклонена";
 
 						var content = new FormUrlEncodedContent(
@@ -137,7 +137,6 @@ namespace WizzServer.Services
 							new KeyValuePair<string, string>("text", text)
 						]);
 
-						// using var _ = await httpClient.GetAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/answerCallbackQuery?callback_query_id={(string)update["callback_query"]!["id"]!}");
 						await ClearQuiz(chatId, messageId, args[2]);
 						using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/sendMessage", content);
 					}
@@ -149,7 +148,7 @@ namespace WizzServer.Services
 
 		public void Stop() => httpClient.Dispose();
 
-		private async Task<string> GetUserPhoto(string realname)
+		private async Task<string> GetUserPhoto(long realname)
 		{
 			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/getUserProfilePhotos?user_id={realname}&limit=1"));
 			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{Config.TelegramClientSecret}/getFile?file_id={response["result"]!["photos"]![0]![0]!["file_id"]}"));
@@ -164,7 +163,7 @@ namespace WizzServer.Services
 
 			for (int i = 0; i < quiz.QuestionCount; i += 10)
 			{
-				int count = Math.Clamp(1, 10, quiz.QuestionCount - i);
+				int count = Math.Clamp(quiz.QuestionCount - i, 1, 10);
 
 				var content = new MultipartFormDataContent
 				{

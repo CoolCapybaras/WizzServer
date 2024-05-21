@@ -66,9 +66,9 @@ namespace Net.Packets.Serverbound
 
 			Quiz[] quizzes;
 			if (IsAuthor)
-				quizzes = db.Quizzes.AsNoTracking().Where(x => EF.Functions.ILike(x.Name, $"{QuizName}%") && x.IsShown && x.AuthorId == client.ProfileId).Skip(Offset).Take(Count).ToArray();
+				quizzes = db.Quizzes.AsNoTracking().Where(x => EF.Functions.ILike(x.Name, $"{QuizName}%") && x.AuthorId == client.ProfileId).Skip(Offset).Take(Count).ToArray();
 			else
-				quizzes = db.Quizzes.AsNoTracking().Where(x => EF.Functions.ILike(x.Name, $"{QuizName}%") && x.IsShown && !x.IsModerating).Skip(Offset).Take(Count).ToArray();
+				quizzes = db.Quizzes.AsNoTracking().Where(x => EF.Functions.ILike(x.Name, $"{QuizName}%") && x.ModerationStatus == ModerationStatus.ModerationComplete).Skip(Offset).Take(Count).ToArray();
 			
 			foreach (var quiz in quizzes)
 				quiz.Image = await File.ReadAllBytesAsync($"quizzes/{quiz.Id}/thumbnail.jpg");

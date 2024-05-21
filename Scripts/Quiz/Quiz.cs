@@ -3,6 +3,13 @@ using WizzServer.Net;
 
 namespace WizzServer
 {
+	public enum ModerationStatus
+	{
+		NotModerated,
+		InModeration,
+		ModerationComplete
+	}
+
 	public class Quiz
 	{
 		public int Id { get; set; }
@@ -12,8 +19,7 @@ namespace WizzServer
 		public string Description { get; set; }
 		public int QuestionCount { get; set; }
 		public int AuthorId { get; set; }
-		public bool IsShown { get; set; }
-		public bool IsModerating { get; set; }
+		public ModerationStatus ModerationStatus;
 		[NotMapped]
 		public QuizQuestion[] Questions { get; set; }
 		public int ReferenceCount;
@@ -29,12 +35,6 @@ namespace WizzServer
 
 		public void Serialize(WizzStream stream, bool ignoreQuestions = true)
 		{
-			if (Id == 0)
-			{
-				stream.WriteByte(0);
-				return;
-			}
-
 			stream.WriteVarInt(Id);
 			stream.WriteString(Name);
 			stream.WriteImage(Image);
@@ -56,12 +56,8 @@ namespace WizzServer
 
 		public static Quiz Deserialize(WizzStream stream)
 		{
-			int quizId = stream.ReadVarInt();
-			if (quizId == 0)
-				return null!;
-
 			var quiz = new Quiz();
-			quiz.Id = quizId;
+			quiz.Id = stream.ReadVarInt();
 			quiz.Name = stream.ReadString();
 			quiz.Image = stream.ReadImage();
 			quiz.Description = stream.ReadString();

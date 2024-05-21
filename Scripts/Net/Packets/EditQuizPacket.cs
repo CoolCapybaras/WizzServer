@@ -39,16 +39,20 @@ namespace Net.Packets
 		public void Populate(WizzStream stream)
 		{
 			Type = (EditQuizType)stream.ReadVarInt();
-			QuizId = stream.ReadVarInt();
-			Quiz = Quiz.Deserialize(stream);
+			if (Type == EditQuizType.Publish)
+				Quiz = Quiz.Deserialize(stream);
+			else
+				QuizId = stream.ReadVarInt();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Type);
-			packetStream.WriteVarInt(QuizId);
-			Quiz.Serialize(packetStream, false);
+			if (Type == EditQuizType.Get)
+				Quiz.Serialize(packetStream);
+			else
+				packetStream.WriteVarInt(QuizId);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
@@ -67,7 +71,7 @@ namespace Net.Packets
 			{
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
-				if (quiz == null || quiz.IsModerating)
+				if (quiz == null || quiz.ModerationStatus == ModerationStatus.InModeration)
 					return;
 
 				using var file = File.OpenText($"quizzes/{QuizId}/questions.json");
@@ -86,7 +90,7 @@ namespace Net.Packets
 			{
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
-				if (quiz != null && quiz.IsModerating)
+				if (quiz != null && quiz.ModerationStatus == ModerationStatus.InModeration)
 					return;
 
 				if (Quiz.Name.Length < 3 || Quiz.Name.Length > 48)
@@ -147,8 +151,10 @@ namespace Net.Packets
 					return;
 				}
 
+				Quiz.Id = 0;
 				Quiz.QuestionCount = Quiz.Questions.Length;
 				Quiz.AuthorId = client.ProfileId;
+				Quiz.ModerationStatus = ModerationStatus.NotModerated;
 
 				if (quiz == null)
 					await db.Quizzes.AddAsync(Quiz);
@@ -157,6 +163,7 @@ namespace Net.Packets
 				await db.SaveChangesAsync();
 
 				Misc.ResizeImage(quizImage, 300);
+				Directory.CreateDirectory($"quizzes/{Quiz.Id}");
 				await quizImage.SaveAsJpegAsync($"quizzes/{Quiz.Id}/thumbnail.jpg");
 
 				using var file = File.CreateText($"quizzes/{Quiz.Id}/questions.json");
@@ -186,27 +193,26 @@ namespace Net.Packets
 				if (quiz == null)
 					return;
 
-				quiz.IsShown = false;
 				quiz.AuthorId = 0;
+				quiz.ModerationStatus = ModerationStatus.NotModerated;
 				await db.SaveChangesAsync();
 
 				client.SendPacket(new EditQuizPacket()
 				{
 					Type = EditQuizType.Delete,
-					QuizId = Quiz.Id
+					QuizId = QuizId
 				});
 			}
 			else if (Type == EditQuizType.Publish)
 			{
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
-				if (quiz == null || quiz.IsModerating)
+				if (quiz == null || quiz.ModerationStatus != ModerationStatus.NotModerated)
 					return;
 
 				using var file = File.OpenText($"quizzes/{QuizId}/questions.json");
 				quiz.Questions = (QuizQuestion[])Misc.JsonSerializer.Deserialize(file, typeof(QuizQuestion[]))!;
-
-				quiz.IsModerating = true;
+				quiz.ModerationStatus = ModerationStatus.InModeration;
 				await db.SaveChangesAsync();
 
 				await server.TelegramBotService.SendQuiz(quiz, -1002047778489);
@@ -214,7 +220,7 @@ namespace Net.Packets
 				client.SendPacket(new EditQuizPacket()
 				{
 					Type = EditQuizType.Publish,
-					QuizId = Quiz.Id
+					QuizId = QuizId
 				});
 			}
 		}
