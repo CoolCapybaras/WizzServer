@@ -1,6 +1,8 @@
-﻿using SixLabors.ImageSharp;
+﻿using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
 using System.Text.RegularExpressions;
 using WizzServer;
+using WizzServer.Database;
 using WizzServer.Net;
 
 namespace Net.Packets.Serverbound
@@ -78,21 +80,29 @@ namespace Net.Packets.Serverbound
 
 			client.Name = Name;
 
-			if (Type == 0)
+			if (client.ProfileId != 0)
 			{
-				Image image;
-				try
-				{
-					image = SixLabors.ImageSharp.Image.Load(Image);
-				}
-				catch (ImageFormatException)
-				{
-					return;
-				}
+				using var db = new ApplicationDbContext();
+				var user = (await db.Users.FirstOrDefaultAsync(x => x.Id == client.ProfileId))!;
+				user.Username = Name;
+				await db.SaveChangesAsync();
 
-				client.Image = await Misc.SaveProfileImage(image, client.ProfileId);
+				if (Type == 0)
+				{
+					Image image;
+					try
+					{
+						image = SixLabors.ImageSharp.Image.Load(Image);
+					}
+					catch (ImageFormatException)
+					{
+						return;
+					}
 
-				image.Dispose();
+					client.Image = await Misc.SaveProfileImage(image, client.ProfileId);
+
+					image.Dispose();
+				}
 			}
 		}
 	}

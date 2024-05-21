@@ -95,7 +95,7 @@ namespace WizzServer.Services
 						await db.SaveChangesAsync();
 
 						var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
-						client.Auth(user.Id, user.Username, image);
+						client.Auth(user.Id, user.Username, image, token);
 					}
 
 					server.AuthTokenManager.RemoveToken(authToken.Token);
