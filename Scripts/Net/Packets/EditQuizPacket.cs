@@ -209,7 +209,7 @@ namespace Net.Packets
 				quiz.IsModerating = true;
 				await db.SaveChangesAsync();
 
-				await server.TelegramBotService.SendQuiz(quiz, 1064169551);
+				await server.TelegramBotService.SendQuiz(quiz, -1002047778489);
 
 				client.SendPacket(new EditQuizPacket()
 				{

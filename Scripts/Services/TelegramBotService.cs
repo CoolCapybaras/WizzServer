@@ -55,6 +55,9 @@ namespace WizzServer.Services
 					{
 						JObject message = (JObject)update["message"]!;
 
+						if (!message.ContainsKey("text"))
+							continue;
+
 						string[] args = ((string)message["text"]!).Split();
 						if (args.Length != 2
 							|| args[0] != "/start"
@@ -153,7 +156,7 @@ namespace WizzServer.Services
 			return $"https://api.telegram.org/file/bot{Config.TelegramClientSecret}/{response["result"]!["file_path"]}";
 		}
 
-		public async Task SendQuiz(Quiz quiz, int chatId)
+		public async Task SendQuiz(Quiz quiz, long chatId)
 		{
 			await _lock.WaitAsync();
 
