@@ -8,12 +8,12 @@ namespace WizzServer
 	{
 		private Server server;
 		private Quiz quiz;
-		private Client host;
 		private Game game;
 		private int currentClientIdx;
 
 		public int Id { get; set; }
 		public bool IsStarted { get; set; }
+		public Client? Host { get; set; }
 		public ConcurrentHashSet<Client> Clients { get; set; } = [];
 
 		public Room(Server server, Quiz quiz, int id, Client client)
@@ -21,7 +21,7 @@ namespace WizzServer
 			this.server = server;
 			this.quiz = quiz;
 			this.Id = id;
-			this.host = client;
+			this.Host = client;
 			this.game = new Game(this, quiz);
 
 			OnClientJoin(client);
@@ -49,12 +49,15 @@ namespace WizzServer
 				return;
 			}
 
+			if (client == Host)
+				Host = null;
+
 			Broadcast(new ClientLeavedPacket(client.RoomId));
 		}
 
 		public void OnGameStart(Client client)
 		{
-			if (client != host || IsStarted)
+			if (client != Host || IsStarted)
 				return;
 
 			Task.Run(game.Start);
@@ -68,7 +71,7 @@ namespace WizzServer
 
 		public void OnGameContinue(Client client)
 		{
-			if (client != host)
+			if (client != Host)
 				return;
 
 			game.OnGameContinue();

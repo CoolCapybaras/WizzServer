@@ -75,10 +75,7 @@ namespace Net.Packets.Serverbound
 		public async ValueTask HandleAsync(Server server, Client client)
 		{
 			if (client.IsAuthed)
-			{
-				client.SendMessage("Already authed");
 				return;
-			}
 
 			if (Type == AuthType.Anonymous)
 			{
@@ -110,13 +107,13 @@ namespace Net.Packets.Serverbound
 			}
 			else if (Type == AuthType.VK)
 			{
-				var token = server.AuthTokenManager.CreateToken(client);
-				client.SendPacket(new AuthResultPacket($"https://oauth.vk.com/authorize?client_id={Config.VkClientId}&display=page&redirect_uri={Config.HttpHostname}&response_type=code&state={token}&v={Config.VkApiVersion}"));
+				string token = server.AuthTokenManager.CreateToken(client);
+				client.SendPacket(new AuthResultPacket(server.VkAuthService.GetAuthUrl(token)));
 			}
 			else if (Type == AuthType.Telegram)
 			{
-				var token = server.AuthTokenManager.CreateToken(client);
-				client.SendPacket(new AuthResultPacket($"https://t.me/wizz_bot?start={token}"));
+				string token = server.AuthTokenManager.CreateToken(client);
+				client.SendPacket(new AuthResultPacket(server.TelegramBotService.GetAuthUrl(token)));
 			}
 		}
 	}

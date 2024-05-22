@@ -13,11 +13,6 @@ namespace WizzServer
 			Formatting = Formatting.Indented
 		};
 
-		public static JsonSerializerSettings JsonSerializerSettings { get; } = new()
-		{
-			ContractResolver = new CamelCasePropertyNamesContractResolver()
-		};
-
 		public static void ResizeImage(Image image, int size)
 		{
 			if (image.Width <= size && image.Height <= size)

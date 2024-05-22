@@ -13,11 +13,22 @@ namespace WizzServer.Services
 		private Server server;
 		private HttpListener httpListener = new();
 		private HttpClient httpClient = new();
+
+		private int vkClientId;
+		private string vkClientSecret;
+		private string vkHttpHostname;
+		private string vkApiVersion;
+
 		private bool disposed;
 
 		public VkAuthService(Server server)
 		{
 			this.server = server;
+
+			vkClientId = Config.GetInt("vkClientId");
+			vkClientSecret = Config.GetString("vkClientSecret");
+			vkHttpHostname = Config.GetString("vkHttpHostname");
+			vkApiVersion = Config.GetString("vkApiVersion");
 		}
 
 		public async Task Start()
@@ -34,7 +45,7 @@ namespace WizzServer.Services
 
 		private async Task ProcessService()
 		{
-			httpListener.Prefixes.Add($"{Config.HttpHostname}/");
+			httpListener.Prefixes.Add($"{vkHttpHostname}/");
 			httpListener.Start();
 			Logger.LogInfo("VK auth service started");
 
@@ -50,22 +61,19 @@ namespace WizzServer.Services
 					break;
 				}
 
-				var request = context.Request;
-				var response = context.Response;
-
-				string[] args = request.RawUrl!.Split(separators);
+				string[] args = context.Request.RawUrl!.Split(separators);
 				if (args.Length != 5
 					|| !server.AuthTokenManager.TryGetToken(args[4], out var authToken)
 					|| authToken.ExpirationTime < DateTimeOffset.UtcNow)
 				{
-					response.OutputStream.Close();
+					context.Response.Close();
 					continue;
 				}
 
 				JObject vkResponse = await GetAccessToken(args[2]);
 				if (vkResponse.ContainsKey("error"))
 				{
-					response.OutputStream.Close();
+					context.Response.Close();
 					continue;
 				}
 
@@ -112,8 +120,7 @@ namespace WizzServer.Services
 					client.Auth(user.Id, user.Username, image, token);
 				}
 
-				server.AuthTokenManager.RemoveToken(authToken.Token);
-				response.OutputStream.Close();
+				context.Response.Close();
 
 				Logger.LogInfo($"{ip} authed as {client.Name} using vk");
 			}
@@ -123,15 +130,17 @@ namespace WizzServer.Services
 
 		public void Stop() => httpListener.Close();
 
+		public string GetAuthUrl(string token) => $"https://oauth.vk.com/authorize?client_id={vkClientId}&display=page&redirect_uri={vkHttpHostname}&response_type=code&state={token}&v={vkApiVersion}";
+
 		private async Task<JObject> GetAccessToken(string code)
 		{
-			var response = await httpClient.GetStringAsync($"https://oauth.vk.com/access_token?client_id={Config.VkClientId}&client_secret={Config.VkClientSecret}&redirect_uri={Config.HttpHostname}&code={code}");
+			var response = await httpClient.GetStringAsync($"https://oauth.vk.com/access_token?client_id={vkClientId}&client_secret={vkClientSecret}&redirect_uri={vkHttpHostname}&code={code}");
 			return JObject.Parse(response);
 		}
 
 		private async Task<JObject> GetUserInfo(string accessToken)
 		{
-			var response = await httpClient.GetStringAsync($"https://api.vk.com/method/users.get?fields=photo_100&access_token={accessToken}&v={Config.VkApiVersion}");
+			var response = await httpClient.GetStringAsync($"https://api.vk.com/method/users.get?fields=photo_100&access_token={accessToken}&v={vkApiVersion}");
 			return (JObject)JObject.Parse(response)["response"]![0]!;
 		}
 

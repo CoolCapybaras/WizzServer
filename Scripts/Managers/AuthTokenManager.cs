@@ -33,15 +33,12 @@ namespace WizzServer.Managers
 			return token.Token;
 		}
 
-		public bool TryGetToken(string token, [MaybeNullWhen(false)] out AuthToken result)
+		public bool TryGetToken(string token, [MaybeNullWhen(false)] out AuthToken value)
 		{
-			return tokens.TryGetValue(token, out result);
-		}
-
-		public void RemoveToken(string token)
-		{
-			if (tokens.TryRemove(token, out var _token))
-				clientToToken.TryRemove(_token.Client, out _);
+			bool result = tokens.TryRemove(token, out value);
+			if (result)
+				clientToToken.TryRemove(value!.Client, out _);
+			return result;
 		}
 
 		public void RemoveToken(Client client)
