@@ -33,7 +33,7 @@ namespace WizzServer
 				if ((property.Value.Type == JTokenType.String
 					&& (string)property.Value! == "")
 					|| (property.Value.Type == JTokenType.Integer
-					&& (int)property.Value! == 0))
+					&& (long)property.Value! == 0))
 					return false;
 			}
 
