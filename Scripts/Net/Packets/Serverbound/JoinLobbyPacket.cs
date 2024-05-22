@@ -64,7 +64,7 @@ namespace Net.Packets.Serverbound
 				}
 				else if (quizRoom.IsStarted)
 				{
-					client.SendMessage("Unknown error");
+					client.SendMessage("???");
 					return;
 				}
 
@@ -74,12 +74,12 @@ namespace Net.Packets.Serverbound
 
 			if (!server.Rooms.TryGetValue(LobbyId, out Room? room))
 			{
-				client.SendMessage("Lobby doesn't exist");
+				client.SendMessage("Такого лобби не существует");
 				return;
 			}
 			else if (room.IsStarted)
 			{
-				client.SendMessage("Lobby already started");
+				client.SendMessage("Лобби уже запущено");
 				return;
 			}
 

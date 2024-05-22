@@ -143,6 +143,9 @@ namespace WizzServer
 
 		public void Logout()
 		{
+			if (!IsAuthed)
+				return;
+
 			Room?.OnClientLeave(this);
 			IsAuthed = false;
 

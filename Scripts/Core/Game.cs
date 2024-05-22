@@ -78,6 +78,9 @@ namespace WizzServer
 
 				if (i < questions.Length - 1)
 					await WaitForContinue();
+
+				if (room.Clients.GetCountNoLocks() == 0)
+					break;
 			}
 
 			room.Broadcast(new GameEndedPacket(globalScore));
@@ -100,7 +103,18 @@ namespace WizzServer
 		{
 			continueGame = false;
 			while (!continueGame)
-				await Task.Delay(1000);
+			{
+				if (room.Host != null)
+				{
+					await Task.Delay(1000);
+					continue;
+				}
+				else
+				{
+					await Task.Delay(3000);
+					break;
+				}
+			}
 		}
 
 		public void OnGameContinue() => continueGame = true;

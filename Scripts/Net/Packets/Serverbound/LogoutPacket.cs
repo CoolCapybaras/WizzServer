@@ -40,11 +40,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			if (!client.IsAuthed)
-				return ValueTask.CompletedTask;
-
 			client.Logout();
-
 			return ValueTask.CompletedTask;
 		}
 	}

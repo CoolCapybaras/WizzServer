@@ -55,14 +55,8 @@ namespace Net.Packets.Serverbound
 
 		public async ValueTask HandleAsync(Server server, Client client)
 		{
-			if (!client.IsAuthed)
+			if (!client.IsAuthed || !NameRegex.IsMatch(Name))
 				return;
-
-			if (!NameRegex.IsMatch(Name))
-			{
-				client.SendMessage("Wrong name");
-				return;
-			}
 
 			client.Name = Name;
 

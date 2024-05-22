@@ -13,24 +13,19 @@ namespace WizzServer
 		public ConcurrentHashSet<Client> Clients { get; } = [];
 		public ConcurrentDictionary<int, Room> Rooms { get; } = [];
 		public QuizManager QuizManager { get; } = new();
+		public VkAuthService VkAuthService { get; set; }
 		public TelegramBotService TelegramBotService { get; set; }
 
-		private VkAuthService vkAuthService;
 		private TcpListener tcpListener;
 
 		public async Task Start()
 		{
-			if (!File.Exists("profileImages/default.jpg"))
-			{
-				Logger.LogError("Отсутствует стандартная аватарка по пути profileImages/default.jpg");
+			if (!Setup())
 				return;
-			}
 
-			Config.Load();
-
-			vkAuthService = new VkAuthService(this);
+			VkAuthService = new VkAuthService(this);
 			TelegramBotService = new TelegramBotService(this);
-			_ = Task.Run(vkAuthService.Start);
+			_ = Task.Run(VkAuthService.Start);
 			_ = Task.Run(TelegramBotService.Start);
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);
@@ -60,10 +55,43 @@ namespace WizzServer
 				client.Disconnect();
 		}
 
+		private static bool Setup()
+		{
+			Config.Load();
+			Config.SetDefault(new Newtonsoft.Json.Linq.JObject()
+			{
+				{ "serverPort", 0 },
+				{ "vkHttpHostname", "" },
+				{ "vkClientId", 0 },
+				{ "vkApiVersion", "5.199" },
+				{ "vkClientSecret", "" },
+				{ "telegramClientSecret", "" },
+				{ "telegramChatId", 0 }
+			});
+			Config.Save();
+
+			if (!Config.CheckNotDefault())
+			{
+				Logger.LogError("Необходимо заполнить config.json");
+				return false;
+			}
+
+			Directory.CreateDirectory("profileImages");
+			Directory.CreateDirectory("quizzes");
+
+			if (!File.Exists("profileImages/default.jpg"))
+			{
+				Logger.LogError("Отсутствует стандартная аватарка по пути profileImages/default.jpg");
+				return false;
+			}
+
+			return true;
+		}
+
 		public void Stop()
 		{
 			tcpListener.Stop();
-			vkAuthService.Stop();
+			VkAuthService.Stop();
 			TelegramBotService.Stop();
 		}
 	}

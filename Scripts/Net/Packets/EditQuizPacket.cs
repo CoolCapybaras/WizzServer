@@ -71,8 +71,14 @@ namespace Net.Packets
 			{
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
-				if (quiz == null || quiz.ModerationStatus == ModerationStatus.InModeration)
+				if (quiz == null)
 					return;
+				
+				if (quiz.ModerationStatus == ModerationStatus.InModeration)
+				{
+					client.SendMessage("Викторина находится на модерации");
+					return;
+				}
 
 				using var file = File.OpenText($"quizzes/{QuizId}/questions.json");
 				quiz.Image = await File.ReadAllBytesAsync($"quizzes/{QuizId}/thumbnail.jpg");
@@ -91,7 +97,10 @@ namespace Net.Packets
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
 				if (quiz != null && quiz.ModerationStatus == ModerationStatus.InModeration)
+				{
+					client.SendMessage("Предыдущая версия викторины находится на модерации");
 					return;
+				}
 
 				if (Quiz.Name.Length < 3 || Quiz.Name.Length > 48)
 					return;
@@ -208,15 +217,23 @@ namespace Net.Packets
 			{
 				using var db = new ApplicationDbContext();
 				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
-				if (quiz == null || quiz.ModerationStatus != ModerationStatus.NotModerated)
+				if (quiz == null)
 					return;
+				
+				if (quiz.ModerationStatus != ModerationStatus.NotModerated)
+				{
+					client.SendMessage(quiz.ModerationStatus == ModerationStatus.InModeration
+						? "Викторина уже находится на модерации"
+						: "Викторина уже прошла модерацию");
+					return;
+				}
 
 				using var file = File.OpenText($"quizzes/{QuizId}/questions.json");
 				quiz.Questions = (QuizQuestion[])Misc.JsonSerializer.Deserialize(file, typeof(QuizQuestion[]))!;
 				quiz.ModerationStatus = ModerationStatus.InModeration;
 				await db.SaveChangesAsync();
 
-				await server.TelegramBotService.SendQuiz(quiz, -1002047778489);
+				await server.TelegramBotService.SendQuiz(quiz);
 
 				client.SendPacket(new EditQuizPacket()
 				{

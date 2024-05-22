@@ -1,49 +1,64 @@
 ﻿using Newtonsoft.Json.Linq;
 
-#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
-#pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
-#pragma warning disable CS8604 // Возможно, аргумент-ссылка, допускающий значение NULL.
 namespace WizzServer
 {
 	public static class Config
 	{
-		public static int ServerPort { get; set; }
-		public static string HttpHostname { get; set; } = string.Empty;
-
-		public static int VkClientId { get; set; }
-		public static string VkApiVersion { get; set; } = "5.199";
-		public static string VkClientSecret { get; set; } = string.Empty;
-
-		public static string TelegramClientSecret { get; set; } = string.Empty;
+		private static JObject config = new();
 
 		public static void Load()
 		{
 			if (!File.Exists("config.json"))
-			{
-				Save();
 				return;
+
+			using var file = File.OpenText($"config.json");
+			config = (JObject)Misc.JsonSerializer.Deserialize(file, typeof(JObject))!;
+		}
+
+		public static void SetDefault(JObject obj)
+		{
+			foreach (var property in obj.Properties())
+			{
+				if (config.ContainsKey(property.Name))
+					continue;
+
+				config.Add(property);
+			}
+		}
+
+		public static bool CheckNotDefault()
+		{
+			foreach (var property in config.Properties())
+			{
+				if ((property.Value.Type == JTokenType.String
+					&& (string)property.Value! == "")
+					|| (property.Value.Type == JTokenType.Integer
+					&& (int)property.Value! == 0))
+					return false;
 			}
 
-			var config = JObject.Parse(File.ReadAllText("config.json"));
-
-			ServerPort = (int)config["serverPort"];
-			HttpHostname = (string)config["httpHostname"];
-			VkClientId = (int)config["vkClientId"];
-			VkApiVersion = (string)config["vkApiVersion"];
-			VkClientSecret = (string)config["vkClientSecret"];
-			TelegramClientSecret = (string)config["telegramClientSecret"];
+			return true;
 		}
 
 		public static void Save()
 		{
-			var config = new JObject();
-			config.Add("serverPort", ServerPort);
-			config.Add("httpHostname", HttpHostname);
-			config.Add("vkClientId", VkClientId);
-			config.Add("vkApiVersion", VkApiVersion);
-			config.Add("vkClientSecret", VkClientSecret);
-			config.Add("telegramClientSecret", TelegramClientSecret);
-			File.WriteAllText("config.json", config.ToString());
+			using var file = File.CreateText($"config.json");
+			Misc.JsonSerializer.Serialize(file, config);
+		}
+
+		public static int GetInt(string name)
+		{
+			return (int)config[name]!;
+		}
+
+		public static long GetLong(string name)
+		{
+			return (long)config[name]!;
+		}
+
+		public static string GetString(string name)
+		{
+			return (string)config[name]!;
 		}
 	}
 }
