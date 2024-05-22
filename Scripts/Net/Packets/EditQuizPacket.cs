@@ -95,7 +95,7 @@ namespace Net.Packets
 			else if (Type == EditQuizType.Upload)
 			{
 				using var db = new ApplicationDbContext();
-				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == QuizId && x.AuthorId == client.ProfileId);
+				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == Quiz.Id && x.AuthorId == client.ProfileId);
 				if (quiz != null && quiz.ModerationStatus == ModerationStatus.InModeration)
 				{
 					client.SendMessage("Предыдущая версия викторины находится на модерации");
@@ -162,15 +162,17 @@ namespace Net.Packets
 					return;
 				}
 
-				Quiz.Id = 0;
 				Quiz.QuestionCount = Quiz.Questions.Length;
 				Quiz.AuthorId = client.ProfileId;
 				Quiz.ModerationStatus = ModerationStatus.NotModerated;
 
 				if (quiz == null)
+				{
+					Quiz.Id = 0;
 					await db.Quizzes.AddAsync(Quiz);
+				}
 				else
-					db.Quizzes.Entry(Quiz).State = EntityState.Modified;
+					db.Quizzes.Entry(quiz).CurrentValues.SetValues(Quiz);
 				await db.SaveChangesAsync();
 
 				Misc.ResizeImage(quizImage, 300);
