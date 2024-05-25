@@ -125,6 +125,7 @@ namespace WizzServer.Services
 				Logger.LogInfo($"{ip} authed as {client.Name} using vk");
 			}
 
+			Logger.LogInfo("Shutting down VK auth service...");
 			this.Dispose();
 		}
 

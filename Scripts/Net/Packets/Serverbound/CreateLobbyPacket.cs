@@ -57,7 +57,6 @@ namespace Net.Packets.Serverbound
 
 			var room = new Room(server, quiz, id, client);
 			server.Rooms.TryAdd(id, room);
-			Logger.LogInfo($"{client.Name} created new room #{id} {quiz.Name}");
 		}
 	}
 }

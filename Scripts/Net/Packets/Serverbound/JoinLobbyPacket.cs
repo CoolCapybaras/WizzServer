@@ -58,8 +58,6 @@ namespace Net.Packets.Serverbound
 					Quiz quiz = (await server.QuizManager.GetQuiz(quizId))!;
 					quizRoom = new Room(server, quiz, LobbyId, client);
 					server.Rooms.TryAdd(LobbyId, quizRoom);
-
-					Logger.LogInfo($"{client.Name} created new room #{LobbyId} {quiz.Name}");
 					return;
 				}
 				else if (quizRoom.IsStarted)

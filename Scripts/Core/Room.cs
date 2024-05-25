@@ -25,6 +25,8 @@ namespace WizzServer
 			this.game = new Game(this, quiz);
 
 			OnClientJoin(client);
+
+			Logger.LogInfo($"{client.Name} created new room #{id} {quiz.Name}");
 		}
 
 		public void OnClientJoin(Client client)
@@ -41,13 +43,13 @@ namespace WizzServer
 
 		public void OnClientLeave(Client client)
 		{
-			Clients.TryRemove(client);
-
-			if (Clients.GetCountNoLocks() <= 1)
+			if (!IsStarted && Clients.GetCountNoLocks() <= 1)
 			{
-				Destroy();
+				Destroy(true);
 				return;
 			}
+
+			Clients.TryRemove(client);
 
 			if (client == Host)
 				Host = null;
@@ -62,6 +64,8 @@ namespace WizzServer
 
 			Task.Run(game.Start);
 			IsStarted = true;
+
+			Logger.LogInfo($"Room #{Id} was started");
 		}
 
 		public void OnClientAnswer(Client client, int id)
@@ -85,14 +89,14 @@ namespace WizzServer
 			}
 		}
 
-		public void Destroy()
+		public void Destroy(bool noClients = false)
 		{
 			foreach (var client in Clients)
 				client.Room = null;
 
 			server.QuizManager.ReturnQuiz(quiz);
 			server.Rooms.TryRemove(Id, out _);
-			Logger.LogInfo($"Room #{Id} was destroyed");
+			Logger.LogInfo($"Room #{Id} was destroyed" + (noClients ? " due to lack of clients" : ""));
 		}
 	}
 }
