@@ -41,6 +41,7 @@ namespace WizzServer
 			stream.WriteString(Description);
 			stream.WriteVarInt(QuestionCount);
 			stream.WriteVarInt(AuthorId);
+			stream.WriteVarInt(ModerationStatus);
 
 			if (ignoreQuestions)
 			{
@@ -63,6 +64,7 @@ namespace WizzServer
 			quiz.Description = stream.ReadString();
 			quiz.QuestionCount = stream.ReadVarInt();
 			quiz.AuthorId = stream.ReadVarInt();
+			quiz.ModerationStatus = (ModerationStatus)stream.ReadVarInt();
 
 			int count = stream.ReadVarInt();
 			quiz.Questions = new QuizQuestion[count];
