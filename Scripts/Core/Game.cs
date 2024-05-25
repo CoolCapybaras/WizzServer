@@ -69,6 +69,7 @@ namespace WizzServer
 
 				foreach (var client in room.Clients)
 					client.SendPacket(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
+				LogAnswers();
 
 				await WaitForContinue();
 
@@ -80,7 +81,10 @@ namespace WizzServer
 					await WaitForContinue();
 
 				if (room.Clients.GetCountNoLocks() == 0)
-					break;
+				{
+					room.Destroy(true);
+					return;
+				}
 			}
 
 			room.Broadcast(new GameEndedPacket(globalScore));
@@ -94,7 +98,7 @@ namespace WizzServer
 
 			Interlocked.Increment(ref answerCount);
 
-			int score = (int)(id == currentQuestion.RightAnswer ? ((currentQuestion.Time * 1000) - (DateTimeOffset.UtcNow - answerStartTime).TotalMilliseconds) * 0.0025f : 0);
+			int score = (int)(id == currentQuestion.RightAnswer ? 100 * (1 - (DateTimeOffset.UtcNow - answerStartTime).TotalSeconds / currentQuestion.Time) : 0);
 			roundScore.TryAdd(client, score);
 			globalScore[client.RoomId] += score;
 		}
@@ -122,6 +126,21 @@ namespace WizzServer
 		private int CalculateDelay()
 		{
 			return Math.Max((int)(currentQuestion.Question.Length * 0.075f), 3) * 1000;
+		}
+
+		private void LogAnswers()
+		{
+			int rightAnswerCount = 0;
+			int scoreSum = 0;
+
+			foreach (var client in roundScore)
+			{
+				if (client.Value > 0)
+					rightAnswerCount++;
+				scoreSum += client.Value;
+			}
+
+			Logger.LogInfo($"Room #{room.Id} answered {rightAnswerCount}/{answerCount} with sum score {scoreSum}");
 		}
 	}
 }

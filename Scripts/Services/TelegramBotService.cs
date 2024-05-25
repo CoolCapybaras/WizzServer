@@ -113,6 +113,7 @@ namespace WizzServer.Services
 							client.Auth(user.Id, user.Username, image, token);
 						}
 
+						await SendMessage((string)message["chat"]!["id"]!, "✅ Авторизация успешна");
 						Logger.LogInfo($"{ip} authed as {client.Name} using telegram");
 					}
 					else if (update.ContainsKey("callback_query"))
@@ -136,18 +137,13 @@ namespace WizzServer.Services
 							? $"✅ Викторина #{quiz.Id} {quiz.Name} была одобрена"
 							: $"❌ Викторина #{quiz.Id} {quiz.Name} была отклонена";
 
-						var content = new FormUrlEncodedContent(
-						[
-							new KeyValuePair<string, string>("chat_id", chatId),
-							new KeyValuePair<string, string>("text", text)
-						]);
-
 						await ClearQuiz(chatId, messageId, args[2]);
-						using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{telegramClientSecret}/sendMessage", content);
+						await SendMessage(chatId, text);
 					}
 				}
 			}
 
+			Logger.LogInfo("Shutting down telegram bot service...");
 			this.Dispose();
 		}
 
@@ -158,6 +154,17 @@ namespace WizzServer.Services
 			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{telegramClientSecret}/getUserProfilePhotos?user_id={realname}&limit=1"));
 			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{telegramClientSecret}/getFile?file_id={response["result"]!["photos"]![0]![0]!["file_id"]}"));
 			return $"https://api.telegram.org/file/bot{telegramClientSecret}/{response["result"]!["file_path"]}";
+		}
+
+		private async Task SendMessage(string chatId, string text)
+		{
+			var content = new FormUrlEncodedContent(
+			[
+				new KeyValuePair<string, string>("chat_id", chatId),
+				new KeyValuePair<string, string>("text", text)
+			]);
+
+			using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{telegramClientSecret}/sendMessage", content);
 		}
 
 		public async Task SendQuiz(Quiz quiz)

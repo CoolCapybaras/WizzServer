@@ -45,11 +45,11 @@ namespace WizzServer
 				}
 
 				var client = new Client(this, socket);
-				client.OnConnect();
+				Clients.Add(client);
 				_ = Task.Run(client.Start);
 			}
 
-			Logger.LogInfo("Shutting down...");
+			Logger.LogInfo("Shutting down server...");
 
 			foreach (var client in Clients)
 				client.Disconnect();

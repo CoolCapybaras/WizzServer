@@ -1,15 +1,42 @@
-﻿namespace WizzServer
+﻿using System.Runtime.CompilerServices;
+using System.Text;
+
+namespace WizzServer
 {
 	public static class Logger
 	{
-		public static void LogInfo(string message)
+		private static StreamWriter console = new(Console.OpenStandardOutput(), new UTF8Encoding(false), 256, true)
 		{
-			Console.WriteLine($"[{DateTimeOffset.Now:HH:mm:ss}][INFO] {message}");
-		}
+			AutoFlush = true,
+		};
+		private static StreamWriter file;
+		private static int logCount = 500000;
 
-		public static void LogError(string message)
+		public static void LogInfo(string message) =>
+			LogMessage(message, false);
+
+		public static void LogError(string message) =>
+			LogMessage(message, true);
+
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		private static void LogMessage(string message, bool isError)
 		{
-			Console.WriteLine($"[{DateTimeOffset.Now:HH:mm:ss}][ERROR] {message}");
+			if (logCount++ == 500000)
+			{
+				Directory.CreateDirectory("logs");
+				file?.Close();
+				file = File.CreateText($"logs/{DateTimeOffset.Now:dd-MM-yyyy-HH-mm-ss}.log");
+				file.AutoFlush = true;
+				logCount = 0;
+			}
+
+			string text = $"[{DateTimeOffset.Now:dd.MM.yyyy HH:mm:ss}][{(isError ? "ERROR" : "INFO")}] {message}";
+#if DEBUG
+			Console.WriteLine(text);
+#else
+			console.WriteLine(text);
+#endif
+			file.WriteLine(text);
 		}
 	}
 }

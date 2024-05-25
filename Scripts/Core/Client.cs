@@ -148,13 +148,6 @@ namespace WizzServer
 
 			Room?.OnClientLeave(this);
 			IsAuthed = false;
-
-			Logger.LogInfo($"{Name} logged out");
-		}
-
-		public void OnConnect()
-		{
-			server.Clients.Add(this);
 		}
 
 		public void Disconnect() => wizzStream.Dispose();
@@ -164,11 +157,6 @@ namespace WizzServer
 			server.AuthTokenManager.RemoveToken(this);
 			Room?.OnClientLeave(this);
 			server.Clients.TryRemove(this);
-
-			if (!IsAuthed)
-				return;
-
-			Logger.LogInfo($"{Name} has left the server");
 		}
 
 		public void SendPacket(IPacket packet)
