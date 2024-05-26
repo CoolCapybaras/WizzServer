@@ -13,8 +13,9 @@ namespace WizzServer.Services
 		private SemaphoreSlim _lock = new(1, 1);
 		private int updateId;
 
-		private string telegramClientSecret;
-		private long telegramChatId;
+		private string tgUsername;
+		private string tgToken;
+		private string tgChatId;
 
 		private bool disposed;
 
@@ -22,8 +23,9 @@ namespace WizzServer.Services
 		{
 			this.server = server;
 
-			telegramClientSecret = Config.GetString("telegramClientSecret");
-			telegramChatId = Config.GetLong("telegramChatId");
+			tgUsername = Config.GetString("tgUsername");
+			tgToken = Config.GetString("tgToken");
+			tgChatId = Config.GetString("tgChatId");
 		}
 
 		public async Task Start()
@@ -47,14 +49,14 @@ namespace WizzServer.Services
 				string response;
 				try
 				{
-					response = await httpClient.GetStringAsync($"https://api.telegram.org/bot{telegramClientSecret}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
+					response = await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
 				}
 				catch (OperationCanceledException)
 				{
 					break;
 				}
 
-				foreach (JObject update in JObject.Parse(response)["result"]!)
+				foreach (JObject update in JObject.Parse(response)["result"])
 				{
 					updateId = (int)update["update_id"]! + 1;
 
@@ -75,7 +77,7 @@ namespace WizzServer.Services
 						Client client = authToken.Client;
 
 						var token = AuthTokenManager.GenerateToken();
-						var realname = (long)message["from"]!["id"]!;
+						var realname = (long)message["from"]["id"]!;
 						var ip = client.GetIP();
 						var timestamp = DateTimeOffset.UtcNow;
 
@@ -85,7 +87,7 @@ namespace WizzServer.Services
 						{
 							user = new DbUser()
 							{
-								Username = (string)message["from"]!["first_name"]!,
+								Username = (string)message["from"]["first_name"]!,
 								Realname = realname,
 								Token = token,
 								Ip = ip,
@@ -113,14 +115,14 @@ namespace WizzServer.Services
 							client.Auth(user.Id, user.Username, image, token);
 						}
 
-						await SendMessage((string)message["chat"]!["id"]!, "✅ Авторизация успешна");
+						await SendMessage((string)message["chat"]["id"]!, "✅ Авторизация успешна");
 						Logger.LogInfo($"{ip} authed as {client.Name} using telegram");
 					}
 					else if (update.ContainsKey("callback_query"))
 					{
-						int[] args = Array.ConvertAll(((string)update["callback_query"]!["data"]!).Split(), int.Parse);
-						string chatId = (string)update["callback_query"]!["message"]!["chat"]!["id"]!;
-						int messageId = (int)update["callback_query"]!["message"]!["message_id"]!;
+						int[] args = Array.ConvertAll(((string)update["callback_query"]["data"]!).Split(), int.Parse);
+						string chatId = (string)update["callback_query"]["message"]["chat"]["id"]!;
+						int messageId = (int)update["callback_query"]["message"]["message_id"]!;
 
 						using var db = new ApplicationDbContext();
 						var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == args[0]);
@@ -151,9 +153,9 @@ namespace WizzServer.Services
 
 		private async Task<string> GetUserPhoto(long realname)
 		{
-			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{telegramClientSecret}/getUserProfilePhotos?user_id={realname}&limit=1"));
-			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{telegramClientSecret}/getFile?file_id={response["result"]!["photos"]![0]![0]!["file_id"]}"));
-			return $"https://api.telegram.org/file/bot{telegramClientSecret}/{response["result"]!["file_path"]}";
+			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getUserProfilePhotos?user_id={realname}&limit=1"));
+			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getFile?file_id={response["result"]["photos"][0][0]["file_id"]}"));
+			return $"https://api.telegram.org/file/bot{tgToken}/{response["result"]["file_path"]}";
 		}
 
 		private async Task SendMessage(string chatId, string text)
@@ -164,7 +166,7 @@ namespace WizzServer.Services
 				new KeyValuePair<string, string>("text", text)
 			]);
 
-			using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{telegramClientSecret}/sendMessage", content);
+			using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{tgToken}/sendMessage", content);
 		}
 
 		public async Task SendQuiz(Quiz quiz)
@@ -179,7 +181,7 @@ namespace WizzServer.Services
 
 				var content = new MultipartFormDataContent
 				{
-					{ new StringContent(telegramChatId.ToString()), "chat_id" },
+					{ new StringContent(tgChatId), "chat_id" },
 					{ new StringContent($"[{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media" }
 				};
 
@@ -188,7 +190,7 @@ namespace WizzServer.Services
 				for (int q = i; q < endIdx; q++)
 					content.Add(new StreamContent(new FileStream($"quizzes/{quiz.Id}/{q}.jpg", FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)), $"{q}.jpg", $"{q}.jpg");
 
-				using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{telegramClientSecret}/sendMediaGroup", content);
+				using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{tgToken}/sendMediaGroup", content);
 			}
 
 			var sb = new StringBuilder();
@@ -207,7 +209,7 @@ namespace WizzServer.Services
 
 				var content = new Dictionary<string, string>
 				{
-					{ "chat_id", telegramChatId.ToString() },
+					{ "chat_id", tgChatId },
 					{ "text", sb.ToString() }
 				};
 
@@ -215,18 +217,18 @@ namespace WizzServer.Services
 				if (i == quiz.QuestionCount)
 					content.Add("reply_markup", $"{{\"inline_keyboard\":[[{{\"text\":\"✅\",\"callback_data\":\"{quiz.Id} 1 {messageCount}\"}},{{\"text\":\"❌\",\"callback_data\":\"{quiz.Id} 0 {messageCount}\"}}]]}}");
 
-				using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{telegramClientSecret}/sendMessage", new FormUrlEncodedContent(content));
+				using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{tgToken}/sendMessage", new FormUrlEncodedContent(content));
 				sb.Clear();
 			}
 
 			_lock.Release();
 		}
 
-		public string GetAuthUrl(string token) => $"https://t.me/wizz_bot?start={token}";
+		public string GetAuthUrl(string token) => $"https://t.me/{tgUsername}?start={token}";
 
 		private async Task ClearQuiz(string chatId, int messageId, int messageCount)
 		{
-			using var _ = await httpClient.GetAsync($"https://api.telegram.org/bot{telegramClientSecret}/deleteMessages?chat_id={chatId}&message_ids=[{string.Join(',', Enumerable.Range(messageId - messageCount + 1, messageCount))}]");
+			using var _ = await httpClient.GetAsync($"https://api.telegram.org/bot{tgToken}/deleteMessages?chat_id={chatId}&message_ids=[{string.Join(',', Enumerable.Range(messageId - messageCount + 1, messageCount))}]");
 		}
 
 		public void Dispose()

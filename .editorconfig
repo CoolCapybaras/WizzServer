@@ -5,3 +5,6 @@ dotnet_diagnostic.CS8618.severity = none
 
 # IDE0044: Добавить модификатор только для чтения
 dotnet_diagnostic.IDE0044.severity = none
+
+# CS8602: Разыменование вероятной пустой ссылки.
+dotnet_diagnostic.CS8602.severity = none

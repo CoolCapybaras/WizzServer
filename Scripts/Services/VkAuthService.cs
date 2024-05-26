@@ -142,7 +142,7 @@ namespace WizzServer.Services
 		private async Task<JObject> GetUserInfo(string accessToken)
 		{
 			var response = await httpClient.GetStringAsync($"https://api.vk.com/method/users.get?fields=photo_100&access_token={accessToken}&v={vkApiVersion}");
-			return (JObject)JObject.Parse(response)["response"]![0]!;
+			return (JObject)JObject.Parse(response)["response"][0]!;
 		}
 
 		public void Dispose()

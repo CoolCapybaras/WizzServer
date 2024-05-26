@@ -72,8 +72,9 @@ namespace WizzServer
 				{ "vkClientId", 0 },
 				{ "vkApiVersion", "5.199" },
 				{ "vkClientSecret", "" },
-				{ "telegramClientSecret", "" },
-				{ "telegramChatId", 0 }
+				{ "tgUsername", "" },
+				{ "tgToken", "" },
+				{ "tgChatId", 0 }
 			});
 			Config.Save();
 

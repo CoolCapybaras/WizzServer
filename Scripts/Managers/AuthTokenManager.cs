@@ -37,7 +37,7 @@ namespace WizzServer.Managers
 		{
 			bool result = tokens.TryRemove(token, out value);
 			if (result)
-				clientToToken.TryRemove(value!.Client, out _);
+				clientToToken.TryRemove(value.Client, out _);
 			return result;
 		}
 
