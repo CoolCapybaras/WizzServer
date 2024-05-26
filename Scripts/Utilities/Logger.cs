@@ -18,6 +18,8 @@ namespace WizzServer
 		public static void LogError(string message) =>
 			LogMessage(message, true);
 
+		public static void Flush() => file.Flush();
+
 		[MethodImpl(MethodImplOptions.Synchronized)]
 		private static void LogMessage(string message, bool isError)
 		{
@@ -26,7 +28,6 @@ namespace WizzServer
 				Directory.CreateDirectory("logs");
 				file?.Close();
 				file = File.CreateText($"logs/{DateTimeOffset.Now:dd-MM-yyyy-HH-mm-ss}.log");
-				file.AutoFlush = true;
 				logCount = 0;
 			}
 

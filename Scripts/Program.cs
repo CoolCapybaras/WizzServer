@@ -2,10 +2,15 @@
 {
 	internal class Program
 	{
-		static async Task Main(string[] args)
+		static void Main(string[] args)
 		{
-			Server server = new Server();
-			await server.Start();
+			var server = new Server();
+			var task = Task.Run(server.Start);
+
+			while (Console.ReadLine() != "stop") { }
+
+			server.Stop();
+			task.Wait();
 		}
 	}
 }

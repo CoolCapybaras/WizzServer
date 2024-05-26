@@ -123,8 +123,8 @@ namespace WizzServer.Services
 						int messageId = (int)update["callback_query"]!["message"]!["message_id"]!;
 
 						using var db = new ApplicationDbContext();
-						var quiz = await db.Quizzes.FirstAsync(x => x.Id == args[0]);
-						if (quiz.ModerationStatus != ModerationStatus.InModeration)
+						var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == args[0]);
+						if (quiz == null || quiz.ModerationStatus != ModerationStatus.InModeration)
 						{
 							await ClearQuiz(chatId, messageId, args[2]);
 							continue;

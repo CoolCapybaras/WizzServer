@@ -17,6 +17,7 @@ namespace WizzServer
 		public TelegramBotService TelegramBotService { get; set; }
 
 		private TcpListener tcpListener;
+		private Task[] serverTasks;
 
 		public async Task Start()
 		{
@@ -25,8 +26,11 @@ namespace WizzServer
 
 			VkAuthService = new VkAuthService(this);
 			TelegramBotService = new TelegramBotService(this);
-			_ = Task.Run(VkAuthService.Start);
-			_ = Task.Run(TelegramBotService.Start);
+			serverTasks =
+			[
+				Task.Run(VkAuthService.Start),
+				Task.Run(TelegramBotService.Start)
+			];
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);
 			tcpListener.Start();
@@ -53,6 +57,9 @@ namespace WizzServer
 
 			foreach (var client in Clients)
 				client.Disconnect();
+
+			await Task.WhenAll(serverTasks);
+			Logger.Flush();
 		}
 
 		private static bool Setup()
