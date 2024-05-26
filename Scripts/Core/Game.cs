@@ -11,10 +11,11 @@ namespace WizzServer
 		private QuizQuestion currentQuestion;
 		private ConcurrentDictionary<Client, int> roundScore = new();
 		private ConcurrentDictionary<int, int> globalScore;
+		private TaskCompletionSource answerQuestionTask;
+		private TaskCompletionSource continueTask;
 		private DateTimeOffset answerStartTime;
-		private bool isAnswerAllowed;
+		private int answerNeededCount;
 		private int answerCount;
-		private bool continueGame;
 
 		public Game(Room room, Quiz quiz)
 		{
@@ -49,23 +50,18 @@ namespace WizzServer
 			{
 				currentQuestion = questions[i];
 
-				int delay = CalculateDelay();
+				int delay = Math.Max((int)(currentQuestion.Question.Length * 0.075f), 3);
 				room.Broadcast(new RoundStartedPacket(i, delay));
-				await Task.Delay(delay);
+				await Task.Delay(delay * 1000);
 
+				answerNeededCount = room.Clients.Count;
+				answerQuestionTask = new TaskCompletionSource();
 				room.Broadcast(new ShowQuestionPacket());
-				isAnswerAllowed = true;
 				answerStartTime = DateTimeOffset.UtcNow;
 
-				for (int q = 0; q < currentQuestion.Time; q++)
-				{
-					if (answerCount >= room.Clients.GetCountNoLocks())
-						break;
+				await Task.WhenAny(Task.Delay(currentQuestion.Time * 1000), answerQuestionTask.Task);
 
-					await Task.Delay(1000);
-				}
-
-				isAnswerAllowed = false;
+				answerNeededCount = 0;
 
 				foreach (var client in room.Clients)
 					client.SendPacket(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
@@ -93,40 +89,40 @@ namespace WizzServer
 
 		public void OnClientAnswer(Client client, int id)
 		{
-			if (!isAnswerAllowed || roundScore.ContainsKey(client))
+			if (answerNeededCount == 0 || roundScore.ContainsKey(client))
 				return;
-
-			Interlocked.Increment(ref answerCount);
 
 			int score = (int)(id == currentQuestion.RightAnswer ? 100 * (1 - (DateTimeOffset.UtcNow - answerStartTime).TotalSeconds / currentQuestion.Time) : 0);
 			roundScore.TryAdd(client, score);
 			globalScore[client.RoomId] += score;
+
+			if (Interlocked.Increment(ref answerCount) == answerNeededCount)
+				answerQuestionTask.TrySetResult();
+		}
+
+		public void OnClientLeave(Client client)
+		{
+			if (answerNeededCount == 0 || roundScore.ContainsKey(client)
+				|| Interlocked.Decrement(ref answerNeededCount) != answerCount)
+				return;
+
+			answerQuestionTask.TrySetResult();
 		}
 
 		private async Task WaitForContinue()
 		{
-			continueGame = false;
-			while (!continueGame)
+			if (room.Host != null)
 			{
-				if (room.Host != null)
-				{
-					await Task.Delay(1000);
-					continue;
-				}
-				else
-				{
-					await Task.Delay(3000);
-					break;
-				}
+				continueTask = new TaskCompletionSource();
+				await continueTask.Task;
+			}
+			else
+			{
+				await Task.Delay(3000);
 			}
 		}
 
-		public void OnGameContinue() => continueGame = true;
-
-		private int CalculateDelay()
-		{
-			return Math.Max((int)(currentQuestion.Question.Length * 0.075f), 3) * 1000;
-		}
+		public void OnGameContinue() => continueTask?.TrySetResult();
 
 		private void LogAnswers()
 		{

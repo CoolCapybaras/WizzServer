@@ -54,7 +54,10 @@ namespace WizzServer
 			if (client == Host)
 				Host = null;
 
-			Broadcast(new ClientLeavedPacket(client.RoomId));
+			if (!IsStarted)
+				Broadcast(new ClientLeavedPacket(client.RoomId));
+			else
+				game.OnClientLeave(client);
 		}
 
 		public void OnGameStart(Client client)
@@ -65,7 +68,7 @@ namespace WizzServer
 			Task.Run(game.Start);
 			IsStarted = true;
 
-			Logger.LogInfo($"Room #{Id} was started");
+			Logger.LogInfo($"Room #{Id} was started with {Clients.GetCountNoLocks()} clients");
 		}
 
 		public void OnClientAnswer(Client client, int id)

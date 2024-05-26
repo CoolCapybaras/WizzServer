@@ -33,10 +33,9 @@ namespace WizzServer
 				Task.Run(TelegramBotService.Start)
 			];
 
-			int port = Config.GetInt("serverPort");
-			tcpListener = new TcpListener(IPAddress.Any, port);
+			tcpListener = new TcpListener(IPAddress.Any, 8887);
 			tcpListener.Start();
-			Logger.LogInfo($"Server started on port {port}");
+			Logger.LogInfo("Server started on port 8887");
 
 			while (true)
 			{
