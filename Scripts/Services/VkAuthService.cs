@@ -14,9 +14,9 @@ namespace WizzServer.Services
 		private HttpListener httpListener = new();
 		private HttpClient httpClient = new();
 
+		private string vkHttpHostname;
 		private int vkClientId;
 		private string vkClientSecret;
-		private string vkHttpHostname;
 		private string vkApiVersion;
 
 		private bool disposed;
@@ -25,9 +25,9 @@ namespace WizzServer.Services
 		{
 			this.server = server;
 
+			vkHttpHostname = Config.GetString("vkHttpHostname");
 			vkClientId = Config.GetInt("vkClientId");
 			vkClientSecret = Config.GetString("vkClientSecret");
-			vkHttpHostname = Config.GetString("vkHttpHostname");
 			vkApiVersion = Config.GetString("vkApiVersion");
 		}
 

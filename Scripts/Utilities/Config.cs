@@ -15,9 +15,29 @@ namespace WizzServer
 			config = (JObject)Misc.JsonSerializer.Deserialize(file, typeof(JObject))!;
 		}
 
-		public static void SetDefault(JObject obj)
+		public static void SetDefault()
 		{
-			foreach (var property in obj.Properties())
+			var defaultConfig = new JObject()
+			{
+				{ "serverPort", 0 },
+
+				{ "dbHost", "" },
+				{ "dbPort", 0 },
+				{ "dbDatabase", "" },
+				{ "dbUsername", "" },
+				{ "dbPassword", "" },
+
+				{ "vkHttpHostname", "" },
+				{ "vkClientId", 0 },
+				{ "vkClientSecret", "" },
+				{ "vkApiVersion", "5.199" },
+
+				{ "tgUsername", "" },
+				{ "tgToken", "" },
+				{ "tgChatId", 0 }
+			};
+
+			foreach (var property in defaultConfig.Properties())
 			{
 				if (config.ContainsKey(property.Name))
 					continue;

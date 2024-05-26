@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using WizzServer.Database;
 using WizzServer.Managers;
 using WizzServer.Services;
 using WizzServer.Utilities.Collections;
@@ -32,9 +33,10 @@ namespace WizzServer
 				Task.Run(TelegramBotService.Start)
 			];
 
-			tcpListener = new TcpListener(IPAddress.Any, 8887);
+			int port = Config.GetInt("serverPort");
+			tcpListener = new TcpListener(IPAddress.Any, port);
 			tcpListener.Start();
-			Logger.LogInfo("Server started on port 8887");
+			Logger.LogInfo($"Server started on port {port}");
 
 			while (true)
 			{
@@ -65,17 +67,7 @@ namespace WizzServer
 		private static bool Setup()
 		{
 			Config.Load();
-			Config.SetDefault(new Newtonsoft.Json.Linq.JObject()
-			{
-				{ "serverPort", 0 },
-				{ "vkHttpHostname", "" },
-				{ "vkClientId", 0 },
-				{ "vkApiVersion", "5.199" },
-				{ "vkClientSecret", "" },
-				{ "tgUsername", "" },
-				{ "tgToken", "" },
-				{ "tgChatId", 0 }
-			});
+			Config.SetDefault();
 			Config.Save();
 
 			if (!Config.CheckNotDefault())
@@ -92,6 +84,8 @@ namespace WizzServer
 				Logger.LogError("Отсутствует стандартная аватарка по пути profileImages/default.jpg");
 				return false;
 			}
+
+			ApplicationDbContext.ConnectionString = $"Host={Config.GetString("dbHost")};Port={Config.GetInt("dbPort")};Database={Config.GetString("dbDatabase")};Username={Config.GetString("dbUsername")};Password={Config.GetString("dbPassword")}";
 
 			return true;
 		}
