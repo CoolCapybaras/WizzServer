@@ -7,7 +7,8 @@ namespace WizzServer
 	{
 		NotModerated,
 		InModeration,
-		ModerationComplete
+		ModerationAccepted,
+		ModerationRejected
 	}
 
 	public class Quiz

@@ -224,9 +224,12 @@ namespace Net.Packets
 				
 				if (quiz.ModerationStatus != ModerationStatus.NotModerated)
 				{
-					client.SendMessage(quiz.ModerationStatus == ModerationStatus.InModeration
-						? "Викторина уже находится на модерации"
-						: "Викторина уже прошла модерацию");
+					client.SendMessage(quiz.ModerationStatus switch
+					{
+						ModerationStatus.InModeration => "Викторина уже находится на модерации",
+						ModerationStatus.ModerationAccepted => "Викторина уже прошла модерацию",
+						_ => "Викторина не прошла модерацию, попробуйте сделать новую версию",
+					});
 					return;
 				}
 

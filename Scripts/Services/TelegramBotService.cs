@@ -132,10 +132,10 @@ namespace WizzServer.Services
 							continue;
 						}
 
-						quiz.ModerationStatus = args[1] == 1 ? ModerationStatus.ModerationComplete : ModerationStatus.NotModerated;
+						quiz.ModerationStatus = args[1] == 1 ? ModerationStatus.ModerationAccepted : ModerationStatus.ModerationRejected;
 						await db.SaveChangesAsync();
 
-						string text = quiz.ModerationStatus == ModerationStatus.ModerationComplete
+						string text = quiz.ModerationStatus == ModerationStatus.ModerationAccepted
 							? $"✅ Викторина #{quiz.Id} {quiz.Name} была одобрена"
 							: $"❌ Викторина #{quiz.Id} {quiz.Name} была отклонена";
 
