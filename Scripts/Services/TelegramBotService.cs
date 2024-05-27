@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using System.Net;
 using System.Text;
 using WizzServer.Database;
 using WizzServer.Managers;
@@ -46,15 +47,24 @@ namespace WizzServer.Services
 
 			while (true)
 			{
-				string response;
+				HttpResponseMessage httpMessage;
 				try
 				{
-					response = await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
+					httpMessage = await httpClient.GetAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
 				}
 				catch (OperationCanceledException)
 				{
 					break;
 				}
+
+				if (httpMessage.StatusCode != HttpStatusCode.OK)
+				{
+					httpMessage.Dispose();
+					continue;
+				}
+
+				string response = await httpMessage.Content.ReadAsStringAsync();
+				httpMessage.Dispose();
 
 				foreach (JObject update in JObject.Parse(response)["result"])
 				{

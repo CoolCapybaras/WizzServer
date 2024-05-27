@@ -56,7 +56,7 @@ namespace WizzServer.Services
 				{
 					context = await httpListener.GetContextAsync();
 				}
-				catch (HttpListenerException)
+				catch (Exception e) when (e is HttpListenerException or ObjectDisposedException)
 				{
 					break;
 				}
