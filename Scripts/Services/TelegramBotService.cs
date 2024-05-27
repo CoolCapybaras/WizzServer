@@ -189,7 +189,7 @@ namespace WizzServer.Services
 			{
 				int count = Math.Clamp(quiz.QuestionCount - i, 1, 10);
 
-				var content = new MultipartFormDataContent
+				using var content = new MultipartFormDataContent
 				{
 					{ new StringContent(tgChatId), "chat_id" },
 					{ new StringContent($"[{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media" }
