@@ -205,7 +205,7 @@ namespace Net.Packets
 				if (quiz == null)
 					return;
 
-				quiz.AuthorId = 0;
+				quiz.AuthorId = 1;
 				quiz.ModerationStatus = ModerationStatus.NotModerated;
 				await db.SaveChangesAsync();
 
