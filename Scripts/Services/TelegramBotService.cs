@@ -52,6 +52,11 @@ namespace WizzServer.Services
 				{
 					httpMessage = await httpClient.GetAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
 				}
+				catch (HttpRequestException)
+				{
+					Logger.LogError("Telegram HttpRequestException");
+					continue;
+				}
 				catch (OperationCanceledException)
 				{
 					break;
@@ -59,6 +64,7 @@ namespace WizzServer.Services
 
 				if (httpMessage.StatusCode != HttpStatusCode.OK)
 				{
+					Logger.LogError($"Telegram wrong status code");
 					httpMessage.Dispose();
 					continue;
 				}
