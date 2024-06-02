@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System.Net;
+using System.Text;
 using WizzServer.Database;
 using WizzServer.Managers;
 
@@ -120,6 +121,7 @@ namespace WizzServer.Services
 					client.Auth(user.Id, user.Username, image, token);
 				}
 
+				await SendMessage(context, "Авторизация успешна, можете закрыть страницу");
 				context.Response.Close();
 
 				Logger.LogInfo($"{ip} authed as {client.Name} using vk");
@@ -127,6 +129,13 @@ namespace WizzServer.Services
 
 			Logger.LogInfo("Shutting down VK auth service...");
 			this.Dispose();
+		}
+
+		public async Task SendMessage(HttpListenerContext context, string message)
+		{
+			byte[] data = Encoding.UTF8.GetBytes(message);
+			context.Response.ContentType = "text/plain; charset=utf-8";
+			await context.Response.OutputStream.WriteAsync(data);
 		}
 
 		public void Stop() => httpListener.Close();

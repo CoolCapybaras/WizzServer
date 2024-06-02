@@ -195,6 +195,8 @@ namespace Net.Packets
 					QuizId = Quiz.Id
 				});
 
+				Logger.LogInfo($"Викторина #{Quiz.Id} {Quiz.Name} была обновлена");
+
 				quizImage.Dispose();
 				DisposeImages(questionImages);
 			}
@@ -214,6 +216,8 @@ namespace Net.Packets
 					Type = EditQuizType.Delete,
 					QuizId = QuizId
 				});
+
+				Logger.LogInfo($"Викторина #{quiz.Id} {quiz.Name} была удалена");
 			}
 			else if (Type == EditQuizType.Publish)
 			{
@@ -245,6 +249,8 @@ namespace Net.Packets
 					Type = EditQuizType.Publish,
 					QuizId = QuizId
 				});
+
+				Logger.LogInfo($"Викторина #{quiz.Id} {quiz.Name} была отправлена на модерацию");
 			}
 		}
 

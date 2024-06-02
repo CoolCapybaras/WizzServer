@@ -70,7 +70,6 @@ namespace WizzServer.Services
 				}
 
 				string response = await httpMessage.Content.ReadAsStringAsync();
-				httpMessage.Dispose();
 
 				foreach (JObject update in JObject.Parse(response)["result"])
 				{
@@ -157,8 +156,12 @@ namespace WizzServer.Services
 
 						await ClearQuiz(chatId, messageId, args[2]);
 						await SendMessage(chatId, text);
+
+						Logger.LogInfo(text);
 					}
 				}
+
+				httpMessage.Dispose();
 			}
 
 			Logger.LogInfo("Shutting down telegram bot service...");
