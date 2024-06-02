@@ -192,24 +192,36 @@ namespace WizzServer.Services
 		{
 			await _lock.WaitAsync();
 
-			int messageCount = 0;
+			int messageCount = quiz.QuestionCount + 1;
+			bool needThumbnail = true;
 
-			for (int i = 0; i < quiz.QuestionCount; i += 10)
+			for (int i = 0; i < quiz.QuestionCount;)
 			{
 				int count = Math.Clamp(quiz.QuestionCount - i, 1, 10);
 
 				using var content = new MultipartFormDataContent
 				{
 					{ new StringContent(tgChatId), "chat_id" },
-					{ new StringContent($"[{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media" }
 				};
 
-				messageCount += count;
-				int endIdx = count + i;
-				for (int q = i; q < endIdx; q++)
+				if (needThumbnail)
+				{
+					if (count == 10)
+						count -= 1;
+					content.Add(new StringContent($"[{{\"type\":\"photo\",\"media\":\"attach://thumbnail.jpg\"}},{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media");
+					content.Add(new StreamContent(new FileStream($"quizzes/{quiz.Id}/thumbnail.jpg", FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)), "thumbnail.jpg", "thumbnail.jpg");
+					needThumbnail = false;
+				}
+				else
+				{
+					content.Add(new StringContent($"[{string.Join(',', Enumerable.Range(i, count).Select((x) => $"{{\"type\":\"photo\",\"media\":\"attach://{x}.jpg\"}}"))}]"), "media");
+				}
+
+				foreach (int q in Enumerable.Range(i, count))
 					content.Add(new StreamContent(new FileStream($"quizzes/{quiz.Id}/{q}.jpg", FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)), $"{q}.jpg", $"{q}.jpg");
 
 				using var _ = await httpClient.PostAsync($"https://api.telegram.org/bot{tgToken}/sendMediaGroup", content);
+				i += count;
 			}
 
 			var sb = new StringBuilder();
