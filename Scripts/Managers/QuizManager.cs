@@ -36,9 +36,7 @@ namespace WizzServer.Managers
 
 		public void ReturnQuiz(Quiz quiz)
 		{
-			Interlocked.Decrement(ref quiz.ReferenceCount);
-
-			if (quiz.ReferenceCount <= 1)
+			if (Interlocked.Decrement(ref quiz.ReferenceCount) == 0)
 				cachedQuizzes.TryRemove(quiz.Id, out _);
 		}
 	}

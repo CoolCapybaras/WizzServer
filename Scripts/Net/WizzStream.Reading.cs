@@ -91,21 +91,21 @@ namespace WizzServer.Net
 			return BinaryPrimitives.ReadDoubleLittleEndian(buffer);
 		}
 
-		public string ReadString(int maxLength = 32767)
+		public string ReadString()
 		{
 			var length = ReadVarInt();
 			if (length == 0)
 				return string.Empty;
 
+			if (length > 512)
+			{
+				throw new ArgumentException($"string ({length}) exceeded maximum length (512)");
+			}
+
 			var buffer = new byte[length];
 			this.ReadExactly(buffer);
 
-			var value = Encoding.UTF8.GetString(buffer);
-			if (maxLength > 0 && value.Length > maxLength)
-			{
-				throw new ArgumentException($"string ({value.Length}) exceeded maximum length ({maxLength})", nameof(value));
-			}
-			return value;
+			return Encoding.UTF8.GetString(buffer);
 		}
 
 		public async Task<string> ReadStringAsync(int maxLength = 32767)
@@ -253,6 +253,11 @@ namespace WizzServer.Net
 			var length = ReadVarInt();
 			if (length == 0)
 				return null!;
+
+			if (length > 2097152)
+			{
+				throw new ArgumentException($"image ({length}) exceeded maximum length (2097152)");
+			}
 
 			var buffer = new byte[length];
 			this.ReadExactly(buffer);
