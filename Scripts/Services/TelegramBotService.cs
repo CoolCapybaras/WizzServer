@@ -173,6 +173,8 @@ namespace WizzServer.Services
 		private async Task<string> GetUserPhoto(long realname)
 		{
 			var response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getUserProfilePhotos?user_id={realname}&limit=1"));
+			if ((int)response["result"]["total_count"]! == 0)
+				return "https://i.imgur.com/QU0pAXI.jpeg";
 			response = JObject.Parse(await httpClient.GetStringAsync($"https://api.telegram.org/bot{tgToken}/getFile?file_id={response["result"]["photos"][0][0]["file_id"]}"));
 			return $"https://api.telegram.org/file/bot{tgToken}/{response["result"]["file_path"]}";
 		}
