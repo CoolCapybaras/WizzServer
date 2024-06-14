@@ -72,7 +72,7 @@ namespace Net.Packets.Serverbound
 			
 			foreach (var quiz in quizzes)
 				quiz.Image = await File.ReadAllBytesAsync($"quizzes/{quiz.Id}/thumbnail.jpg");
-			client.SendPacket(new SearchResultPacket(quizzes));
+			await client.QueuePacketAsync(new SearchResultPacket(quizzes));
 		}
 	}
 }

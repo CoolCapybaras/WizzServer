@@ -24,24 +24,22 @@ namespace WizzServer
 			this.Host = client;
 			this.game = new Game(this, quiz);
 
-			OnClientJoin(client);
-
 			Logger.LogInfo($"{client.Name} created new room #{id} {quiz.Name}");
 		}
 
-		public void OnClientJoin(Client client)
+		public async Task OnClientJoinAsync(Client client)
 		{
 			client.Room = this;
 			client.RoomId = Interlocked.Increment(ref currentClientIdx);
 
-			Broadcast(new ClientJoinedPacket(client));
+			await BroadcastAsync(new ClientJoinedPacket(client));
 
 			Clients.Add(client);
 
-			client.SendPacket(new LobbyJoinedPacket(Id, quiz, Clients.ToArray()));
+			await client.QueuePacketAsync(new LobbyJoinedPacket(Id, quiz, Clients.ToArray()));
 		}
 
-		public void OnClientLeave(Client client)
+		public async Task OnClientLeaveAsync(Client client)
 		{
 			if (!IsStarted && Clients.GetCountNoLocks() <= 1)
 			{
@@ -55,7 +53,7 @@ namespace WizzServer
 				Host = null;
 
 			if (!IsStarted)
-				Broadcast(new ClientLeavedPacket(client.RoomId));
+				await BroadcastAsync(new ClientLeavedPacket(client.RoomId));
 			else
 				game.OnClientLeave(client);
 		}
@@ -84,11 +82,11 @@ namespace WizzServer
 			game.OnGameContinue();
 		}
 
-		public void Broadcast(IPacket packet)
+		public async Task BroadcastAsync(IPacket packet)
 		{
 			foreach (var client in Clients)
 			{
-				client.SendPacket(packet);
+				await client.QueuePacketAsync(packet);
 			}
 		}
 

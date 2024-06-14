@@ -118,7 +118,7 @@ namespace WizzServer.Services
 							using var stream = await httpClient.GetStreamAsync(await GetUserPhoto(realname));
 							var image = await Misc.SaveProfileImage(stream, user.Id);
 
-							client.Auth(user.Id, user.Username, image, token);
+							await client.AuthAsync(user.Id, user.Username, image, token);
 						}
 						else
 						{
@@ -128,7 +128,7 @@ namespace WizzServer.Services
 							await db.SaveChangesAsync();
 
 							var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
-							client.Auth(user.Id, user.Username, image, token);
+							await client.AuthAsync(user.Id, user.Username, image, token);
 						}
 
 						await SendMessage((string)message["chat"]["id"]!, "✅ Авторизация успешна");

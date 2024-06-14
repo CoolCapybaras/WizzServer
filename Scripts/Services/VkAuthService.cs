@@ -108,7 +108,7 @@ namespace WizzServer.Services
 					using var stream = await httpClient.GetStreamAsync((string)vkResponse["photo_100"]!);
 					var image = await Misc.SaveProfileImage(stream, user.Id);
 
-					client.Auth(user.Id, user.Username, image, token);
+					await client.AuthAsync(user.Id, user.Username, image, token);
 				}
 				else
 				{
@@ -118,7 +118,7 @@ namespace WizzServer.Services
 					await db.SaveChangesAsync();
 
 					var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
-					client.Auth(user.Id, user.Username, image, token);
+					await client.AuthAsync(user.Id, user.Username, image, token);
 				}
 
 				await SendMessage(context, "Авторизация успешна, можете закрыть страницу");

@@ -40,10 +40,10 @@ namespace WizzServer
 			questions = quiz.GetGameQuestions();
 			globalScore = new ConcurrentDictionary<int, int>(room.Clients.Select(x => new KeyValuePair<int, int>(x.RoomId, 0)));
 
-			room.Broadcast(new GameStartedPacket(quiz.Name, questions));
+			await room.BroadcastAsync(new GameStartedPacket(quiz.Name, questions));
 			await Task.Delay(3000);
 
-			room.Broadcast(new TimerStartedPacket());
+			await room.BroadcastAsync(new TimerStartedPacket());
 			await Task.Delay(3000);
 
 			for (int i = 0; i < questions.Length; i++)
@@ -51,12 +51,12 @@ namespace WizzServer
 				currentQuestion = questions[i];
 
 				int delay = Math.Max((int)(currentQuestion.Question.Length * 0.075f), 3);
-				room.Broadcast(new RoundStartedPacket(i, delay));
+				await room.BroadcastAsync(new RoundStartedPacket(i, delay));
 				await Task.Delay(delay * 1000);
 
 				answerNeededCount = room.Clients.Count;
 				answerQuestionTask = new TaskCompletionSource();
-				room.Broadcast(new ShowQuestionPacket());
+				await room.BroadcastAsync(new ShowQuestionPacket());
 				answerStartTime = DateTimeOffset.UtcNow;
 
 				await Task.WhenAny(Task.Delay(currentQuestion.Time * 1000), answerQuestionTask.Task);
@@ -64,12 +64,12 @@ namespace WizzServer
 				answerNeededCount = 0;
 
 				foreach (var client in room.Clients)
-					client.SendPacket(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
+					await client.QueuePacketAsync(new RightAnswerPacket(currentQuestion.RightAnswer, roundScore.GetValueOrDefault(client)));
 				LogAnswers();
 
 				await WaitForContinue();
 
-				room.Broadcast(new RoundEndedPacket(globalScore));
+				await room.BroadcastAsync(new RoundEndedPacket(globalScore));
 				answerCount = 0;
 				roundScore.Clear();
 
@@ -83,7 +83,7 @@ namespace WizzServer
 				}
 			}
 
-			room.Broadcast(new GameEndedPacket(globalScore));
+			await room.BroadcastAsync(new GameEndedPacket(globalScore));
 			room.Destroy();
 		}
 

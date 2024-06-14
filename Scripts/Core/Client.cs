@@ -3,6 +3,7 @@ using Net.Packets.Clientbound;
 using Net.Packets.Serverbound;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks.Dataflow;
 using WizzServer.Net;
 using WizzServer.Utilities.Collections;
 
@@ -16,6 +17,7 @@ namespace WizzServer
 		private Socket socket;
 		private NetworkStream networkStream;
 		private WizzStream wizzStream;
+		private BufferBlock<IPacket> packetQueue;
 		private bool disposed;
 
 		public int ProfileId { get; set; }
@@ -32,6 +34,13 @@ namespace WizzServer
 
 			this.networkStream = new NetworkStream(this.socket);
 			this.wizzStream = new WizzStream(this.networkStream);
+
+			var linkOptions = new DataflowLinkOptions { PropagateCompletion = true };
+			var blockOptions = new ExecutionDataflowBlockOptions { EnsureOrdered = true };
+			var sendPacketBlock = new ActionBlock<IPacket>(SendPacket, blockOptions);
+
+			this.packetQueue = new BufferBlock<IPacket>(blockOptions);
+			this.packetQueue.LinkTo(sendPacketBlock, linkOptions);
 		}
 
 		public async Task Start()
@@ -81,7 +90,7 @@ namespace WizzServer
 				}
 			}
 
-			OnDisconnect();
+			await OnDisconnectAsync();
 			this.Dispose();
 		}
 
@@ -132,21 +141,22 @@ namespace WizzServer
 			ObjectPool<T>.Shared.Return(packet);
 		}
 
-		public void Auth(int profileId, string name, byte[]? image = null, string? token = null)
+		public async Task AuthAsync(int profileId, string name, byte[]? image = null, string? token = null)
 		{
 			ProfileId = profileId;
 			Name = name;
 			Image = image ?? defaultImage;
 			IsAuthed = true;
-			SendPacket(new AuthResultPacket(ProfileId, Name, Image, token));
+			await QueuePacketAsync(new AuthResultPacket(ProfileId, Name, Image, token));
 		}
 
-		public void Logout()
+		public async Task LogoutAsync()
 		{
 			if (!IsAuthed)
 				return;
 
-			Room?.OnClientLeave(this);
+			if (Room != null)
+				await Room.OnClientLeaveAsync(this);
 			IsAuthed = false;
 
 			Logger.LogInfo($"{Name} logged out");
@@ -154,10 +164,11 @@ namespace WizzServer
 
 		public void Disconnect() => wizzStream.Dispose();
 
-		public void OnDisconnect()
+		public async Task OnDisconnectAsync()
 		{
 			server.AuthTokenManager.RemoveToken(this);
-			Room?.OnClientLeave(this);
+			if (Room != null)
+				await Room.OnClientLeaveAsync(this);
 			server.Clients.TryRemove(this);
 
 			if (!IsAuthed)
@@ -166,7 +177,7 @@ namespace WizzServer
 			Logger.LogInfo($"{Name} has left the server");
 		}
 
-		public void SendPacket(IPacket packet)
+		private void SendPacket(IPacket packet)
 		{
 			try
 			{
@@ -178,9 +189,14 @@ namespace WizzServer
 			}
 		}
 
-		public void SendMessage(string text, int type = 0)
+		public async Task QueuePacketAsync(IPacket packet)
 		{
-			SendPacket(new MessagePacket(type, text));
+			await packetQueue.SendAsync(packet);
+		}
+
+		public async Task SendMessageAsync(string text, int type = 0)
+		{
+			await QueuePacketAsync(new MessagePacket(type, text));
 		}
 
 		public string GetIP() => ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString();

@@ -38,10 +38,10 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Room?.OnClientLeave(client);
-			return ValueTask.CompletedTask;
+			if (client.Room != null)
+				await client.Room.OnClientLeaveAsync(client);
 		}
 	}
 }
