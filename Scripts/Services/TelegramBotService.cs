@@ -59,6 +59,7 @@ namespace WizzServer.Services
 				}
 				catch (OperationCanceledException)
 				{
+					Logger.LogError("Telegram OperationCanceledException");
 					break;
 				}
 
