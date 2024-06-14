@@ -57,6 +57,7 @@ namespace Net.Packets.Serverbound
 
 			var room = new Room(server, quiz, id, client);
 			server.Rooms.TryAdd(id, room);
+			await room.OnClientJoinAsync(client);
 		}
 	}
 }

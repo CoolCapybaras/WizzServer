@@ -81,11 +81,11 @@ namespace Net.Packets.Serverbound
 			{
 				if (!UpdateProfilePacket.NameRegex.IsMatch(Name))
 				{
-					client.SendMessage("Wrong name");
+					await client.SendMessageAsync("Wrong name");
 					return;
 				}
 
-				client.Auth(0, Name);
+				await client.AuthAsync(0, Name);
 
 				Logger.LogInfo($"{client.GetIP()} authed as {client.Name} anonymously");
 			}
@@ -101,19 +101,19 @@ namespace Net.Packets.Serverbound
 				await db.SaveChangesAsync();
 
 				var image = await File.ReadAllBytesAsync($"profileImages/{user.Id}.jpg");
-				client.Auth(user.Id, user.Username, image);
+				await client.AuthAsync(user.Id, user.Username, image);
 
 				Logger.LogInfo($"{user.Ip} authed as {client.Name} using token");
 			}
 			else if (Type == AuthType.VK)
 			{
 				string token = server.AuthTokenManager.CreateToken(client);
-				client.SendPacket(new AuthResultPacket(server.VkAuthService.GetAuthUrl(token)));
+				await client.QueuePacketAsync(new AuthResultPacket(server.VkAuthService.GetAuthUrl(token)));
 			}
 			else if (Type == AuthType.Telegram)
 			{
 				string token = server.AuthTokenManager.CreateToken(client);
-				client.SendPacket(new AuthResultPacket(server.TelegramBotService.GetAuthUrl(token)));
+				await client.QueuePacketAsync(new AuthResultPacket(server.TelegramBotService.GetAuthUrl(token)));
 			}
 		}
 	}

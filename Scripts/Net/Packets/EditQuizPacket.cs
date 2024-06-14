@@ -76,7 +76,7 @@ namespace Net.Packets
 				
 				if (quiz.ModerationStatus == ModerationStatus.InModeration)
 				{
-					client.SendMessage("Викторина находится на модерации");
+					await client.SendMessageAsync("Викторина находится на модерации");
 					return;
 				}
 
@@ -86,7 +86,7 @@ namespace Net.Packets
 				for (int i = 0; i < quiz.Questions.Length; i++)
 					quiz.Questions[i].Image = await File.ReadAllBytesAsync($"quizzes/{QuizId}/{i}.jpg");
 
-				client.SendPacket(new EditQuizPacket()
+				await client.QueuePacketAsync(new EditQuizPacket()
 				{
 					Type = EditQuizType.Get,
 					Quiz = quiz
@@ -98,7 +98,7 @@ namespace Net.Packets
 				var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == Quiz.Id && x.AuthorId == client.ProfileId);
 				if (quiz != null && quiz.ModerationStatus == ModerationStatus.InModeration)
 				{
-					client.SendMessage("Предыдущая версия викторины находится на модерации");
+					await client.SendMessageAsync("Предыдущая версия викторины находится на модерации");
 					return;
 				}
 
@@ -189,7 +189,7 @@ namespace Net.Packets
 					await image.SaveAsJpegAsync($"quizzes/{Quiz.Id}/{i}.jpg");
 				}
 
-				client.SendPacket(new EditQuizPacket()
+				await client.QueuePacketAsync(new EditQuizPacket()
 				{
 					Type = EditQuizType.Upload,
 					QuizId = Quiz.Id
@@ -211,7 +211,7 @@ namespace Net.Packets
 				quiz.ModerationStatus = ModerationStatus.NotModerated;
 				await db.SaveChangesAsync();
 
-				client.SendPacket(new EditQuizPacket()
+				await client.QueuePacketAsync(new EditQuizPacket()
 				{
 					Type = EditQuizType.Delete,
 					QuizId = QuizId
@@ -228,7 +228,7 @@ namespace Net.Packets
 				
 				if (quiz.ModerationStatus != ModerationStatus.NotModerated)
 				{
-					client.SendMessage(quiz.ModerationStatus switch
+					await client.SendMessageAsync(quiz.ModerationStatus switch
 					{
 						ModerationStatus.InModeration => "Викторина уже находится на модерации",
 						ModerationStatus.ModerationAccepted => "Викторина уже прошла модерацию",
@@ -244,7 +244,7 @@ namespace Net.Packets
 
 				await server.TelegramBotService.SendQuiz(quiz);
 
-				client.SendPacket(new EditQuizPacket()
+				await client.QueuePacketAsync(new EditQuizPacket()
 				{
 					Type = EditQuizType.Publish,
 					QuizId = QuizId

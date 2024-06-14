@@ -58,30 +58,31 @@ namespace Net.Packets.Serverbound
 					Quiz quiz = (await server.QuizManager.GetQuiz(quizId))!;
 					quizRoom = new Room(server, quiz, LobbyId, client);
 					server.Rooms.TryAdd(LobbyId, quizRoom);
+					await quizRoom.OnClientJoinAsync(client);
 					return;
 				}
 				else if (quizRoom.IsStarted)
 				{
-					client.SendMessage("???");
+					await client.SendMessageAsync("???");
 					return;
 				}
 
-				quizRoom.OnClientJoin(client);
+				await quizRoom.OnClientJoinAsync(client);
 				return;
 			}
 
 			if (!server.Rooms.TryGetValue(LobbyId, out Room? room))
 			{
-				client.SendMessage("Такого лобби не существует");
+				await client.SendMessageAsync("Такого лобби не существует");
 				return;
 			}
 			else if (room.IsStarted)
 			{
-				client.SendMessage("Лобби уже запущено");
+				await client.SendMessageAsync("Лобби уже запущено");
 				return;
 			}
 
-			room.OnClientJoin(client);
+			await room.OnClientJoinAsync(client);
 		}
 	}
 }

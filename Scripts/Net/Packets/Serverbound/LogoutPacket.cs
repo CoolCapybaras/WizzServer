@@ -38,10 +38,9 @@ namespace Net.Packets.Serverbound
 			stream.Lock.Release();
 		}
 
-		public ValueTask HandleAsync(Server server, Client client)
+		public async ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Logout();
-			return ValueTask.CompletedTask;
+			await client.LogoutAsync();
 		}
 	}
 }
