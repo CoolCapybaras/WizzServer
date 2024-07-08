@@ -16,7 +16,8 @@ namespace WizzServer
 		public QuizManager QuizManager { get; } = new();
 		public VkAuthService VkAuthService { get; private set; }
 		public TelegramBotService TelegramBotService { get; private set; }
-
+		public DbUpdateService DbUpdateService { get; private set; }
+		
 		private TcpListener tcpListener;
 		private Task[] serverTasks;
 		private CancellationTokenSource cancellationSource = new();
@@ -28,10 +29,12 @@ namespace WizzServer
 
 			VkAuthService = new VkAuthService(this);
 			TelegramBotService = new TelegramBotService(this, cancellationSource.Token);
+			DbUpdateService = new DbUpdateService(cancellationSource.Token);
 			serverTasks =
 			[
 				Task.Run(VkAuthService.Start),
 				Task.Run(TelegramBotService.Start),
+				Task.Run(DbUpdateService.Start)
 			];
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);

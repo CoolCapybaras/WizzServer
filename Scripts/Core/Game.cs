@@ -84,6 +84,15 @@ namespace WizzServer
 			}
 
 			await room.BroadcastAsync(new GameEndedPacket(globalScore));
+
+			foreach (var client in room.Clients)
+			{
+				if (client.ProfileId == 0)
+					continue;
+
+				client.LastPlayedQuizId = quiz.Id;
+			}
+
 			room.Destroy();
 		}
 

@@ -26,6 +26,7 @@ namespace WizzServer
 		public string Name { get; set; }
 		public byte[] Image { get; set; }
 		public Room? Room { get; set; }
+		public int LastPlayedQuizId { get; set; }
 
 		public Client(Server server, Socket socket)
 		{
@@ -86,6 +87,9 @@ namespace WizzServer
 						break;
 					case 12:
 						await HandleFromPoolAsync<LogoutPacket>(data, this);
+						break;
+					case 25:
+						await HandleFromPoolAsync<UpdateRatingPacket>(data, this);
 						break;
 				}
 			}
