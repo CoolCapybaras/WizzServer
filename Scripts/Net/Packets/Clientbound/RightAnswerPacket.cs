@@ -7,7 +7,7 @@ namespace Net.Packets.Clientbound
 	{
 		public int Id => 24;
 
-		public int AnswerId { get; set; }
+		public QuizAnswer Answer { get; set; }
 		public int RoundScore { get; set; }
 
 		public RightAnswerPacket()
@@ -15,9 +15,9 @@ namespace Net.Packets.Clientbound
 
 		}
 
-		public RightAnswerPacket(int answerId, int rountScore)
+		public RightAnswerPacket(QuizAnswer answer, int rountScore)
 		{
-			this.AnswerId = answerId;
+			this.Answer = answer;
 			this.RoundScore = rountScore;
 		}
 
@@ -37,14 +37,14 @@ namespace Net.Packets.Clientbound
 
 		public void Populate(WizzStream stream)
 		{
-			AnswerId = stream.ReadVarInt();
+			Answer = QuizAnswer.Deserialize(stream);
 			RoundScore = stream.ReadVarInt();
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
-			packetStream.WriteVarInt(AnswerId);
+			Answer.Serialize(packetStream);
 			packetStream.WriteVarInt(RoundScore);
 
 			stream.Lock.Wait();

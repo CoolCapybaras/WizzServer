@@ -173,18 +173,9 @@ namespace WizzServer.Net
 			if (length == 0)
 				length = ReadVarInt();
 
-			var result = new byte[length];
-			if (length == 0)
-				return result;
-
-			int n = length;
-			while (true)
-			{
-				n -= Read(result, length - n, n);
-				if (n == 0)
-					break;
-			}
-			return result;
+			var buffer = new byte[length];
+			ReadExactly(buffer);
+			return buffer;
 		}
 
 		public async Task<byte[]> ReadByteArrayAsync(int length = 0)

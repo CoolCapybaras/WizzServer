@@ -7,7 +7,7 @@ namespace Net.Packets.Serverbound
 	{
 		public int Id => 8;
 
-		public int AnswerId { get; set; }
+		public QuizAnswer Answer { get; set; }
 
 		public static AnswerGamePacket Deserialize(byte[] data)
 		{
@@ -25,13 +25,13 @@ namespace Net.Packets.Serverbound
 
 		public void Populate(WizzStream stream)
 		{
-			AnswerId = stream.ReadVarInt();
+			Answer = QuizAnswer.Deserialize(stream);
 		}
 
 		public void Serialize(WizzStream stream)
 		{
 			using var packetStream = new WizzStream();
-			packetStream.WriteVarInt(AnswerId);
+			Answer.Serialize(packetStream);
 
 			stream.Lock.Wait();
 			stream.WriteVarInt(Id.GetVarIntLength() + (int)packetStream.Length);
@@ -43,7 +43,7 @@ namespace Net.Packets.Serverbound
 
 		public ValueTask HandleAsync(Server server, Client client)
 		{
-			client.Room?.OnClientAnswer(client, AnswerId);
+			client.Room?.OnClientAnswer(client, Answer);
 			return ValueTask.CompletedTask;
 		}
 	}

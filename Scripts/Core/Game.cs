@@ -87,12 +87,12 @@ namespace WizzServer
 			room.Destroy();
 		}
 
-		public void OnClientAnswer(Client client, int id)
+		public void OnClientAnswer(Client client, QuizAnswer answer)
 		{
 			if (answerNeededCount == 0 || roundScore.ContainsKey(client))
 				return;
 
-			int score = (int)(id == currentQuestion.RightAnswer ? 100 * (1 - (DateTimeOffset.UtcNow - answerStartTime).TotalSeconds / currentQuestion.Time) : 0);
+			int score = (int)(answer.Equals(currentQuestion.RightAnswer) ? 100 * (1 - (DateTimeOffset.UtcNow - answerStartTime).TotalSeconds / currentQuestion.Time) : 0);
 			roundScore.TryAdd(client, score);
 			globalScore[client.RoomId] += score;
 

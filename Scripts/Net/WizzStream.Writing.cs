@@ -199,7 +199,7 @@ namespace WizzServer.Net
 			}
 
 			WriteVarInt(image.Length);
-			WriteByteArray(image);
+			BaseStream.Write(image);
 		}
 	}
 }

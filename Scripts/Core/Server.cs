@@ -14,11 +14,12 @@ namespace WizzServer
 		public ConcurrentHashSet<Client> Clients { get; } = [];
 		public ConcurrentDictionary<int, Room> Rooms { get; } = [];
 		public QuizManager QuizManager { get; } = new();
-		public VkAuthService VkAuthService { get; set; }
-		public TelegramBotService TelegramBotService { get; set; }
+		public VkAuthService VkAuthService { get; private set; }
+		public TelegramBotService TelegramBotService { get; private set; }
 
 		private TcpListener tcpListener;
 		private Task[] serverTasks;
+		private CancellationTokenSource cancellationSource = new();
 
 		public async Task Start()
 		{
@@ -26,11 +27,11 @@ namespace WizzServer
 				return;
 
 			VkAuthService = new VkAuthService(this);
-			TelegramBotService = new TelegramBotService(this);
+			TelegramBotService = new TelegramBotService(this, cancellationSource.Token);
 			serverTasks =
 			[
 				Task.Run(VkAuthService.Start),
-				Task.Run(TelegramBotService.Start)
+				Task.Run(TelegramBotService.Start),
 			];
 
 			tcpListener = new TcpListener(IPAddress.Any, 8887);
@@ -42,9 +43,9 @@ namespace WizzServer
 				Socket socket;
 				try
 				{
-					socket = await tcpListener.AcceptSocketAsync();
+					socket = await tcpListener.AcceptSocketAsync(cancellationSource.Token);
 				}
-				catch (SocketException)
+				catch (OperationCanceledException)
 				{
 					break;
 				}
@@ -91,9 +92,8 @@ namespace WizzServer
 
 		public void Stop()
 		{
-			tcpListener.Stop();
-			VkAuthService.Stop();
-			TelegramBotService.Stop();
+			cancellationSource.Cancel();
+			VkAuthService.Stop(); // HttpListener doesn't accept cancellation token
 		}
 	}
 }

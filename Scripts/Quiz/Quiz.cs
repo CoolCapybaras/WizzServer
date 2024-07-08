@@ -34,7 +34,7 @@ namespace WizzServer
 			return questions;
 		}
 
-		public void Serialize(WizzStream stream, bool ignoreQuestions = true)
+		public void Serialize(WizzStream stream, bool includeQuestions = false)
 		{
 			stream.WriteVarInt(Id);
 			stream.WriteString(Name);
@@ -44,15 +44,15 @@ namespace WizzServer
 			stream.WriteVarInt(AuthorId);
 			stream.WriteVarInt(ModerationStatus);
 
-			if (ignoreQuestions)
-			{
-				stream.WriteByte(0);
-			}
-			else
+			if (includeQuestions)
 			{
 				stream.WriteVarInt(Questions.Length);
 				for (int i = 0; i < Questions.Length; i++)
-					Questions[i].Serialize(stream);
+					Questions[i].Serialize(stream, true);
+			}
+			else
+			{
+				stream.WriteByte(0);
 			}
 		}
 

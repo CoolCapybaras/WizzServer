@@ -12,6 +12,7 @@ namespace WizzServer.Services
 		private Server server;
 		private HttpClient httpClient = new();
 		private SemaphoreSlim _lock = new(1, 1);
+		private CancellationToken cancellationToken;
 		private int updateId;
 
 		private string tgUsername;
@@ -20,9 +21,10 @@ namespace WizzServer.Services
 
 		private bool disposed;
 
-		public TelegramBotService(Server server)
+		public TelegramBotService(Server server, CancellationToken cancellationToken)
 		{
 			this.server = server;
+			this.cancellationToken = cancellationToken;
 
 			tgUsername = Config.GetString("tgUsername");
 			tgToken = Config.GetString("tgToken");
@@ -50,16 +52,16 @@ namespace WizzServer.Services
 				HttpResponseMessage httpMessage;
 				try
 				{
-					httpMessage = await httpClient.GetAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]");
+					httpMessage = await httpClient.GetAsync($"https://api.telegram.org/bot{tgToken}/getUpdates?offset={updateId}&timeout=25&allowed_updates=[\"message\",\"callback_query\"]", cancellationToken);
 				}
 				catch (HttpRequestException)
 				{
 					Logger.LogError("Telegram HttpRequestException");
 					continue;
 				}
-				catch (OperationCanceledException)
+				catch (OperationCanceledException e)
 				{
-					Logger.LogError("Telegram OperationCanceledException");
+					Logger.LogError($"[OperationCanceledException] {e.InnerException}");
 					break;
 				}
 
@@ -168,8 +170,6 @@ namespace WizzServer.Services
 			Logger.LogInfo("Shutting down telegram bot service...");
 			this.Dispose();
 		}
-
-		public void Stop() => httpClient.Dispose();
 
 		private async Task<string> GetUserPhoto(long realname)
 		{
