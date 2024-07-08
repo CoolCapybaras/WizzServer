@@ -50,7 +50,7 @@ namespace Net.Packets
 			using var packetStream = new WizzStream();
 			packetStream.WriteVarInt(Type);
 			if (Type == EditQuizType.Get)
-				Quiz.Serialize(packetStream, false);
+				Quiz.Serialize(packetStream, true);
 			else
 				packetStream.WriteVarInt(QuizId);
 
@@ -122,7 +122,10 @@ namespace Net.Packets
 						return;
 					}
 
-					if (question.Answers.Length != 2 && question.Answers.Length != 4)
+					if (((question.Type == QuizQuestionType.Default || question.Type == QuizQuestionType.Multiple) && question.Answers.Length != 4)
+						|| (question.Type == QuizQuestionType.TrueOrFalse && question.Answers.Length != 2)
+						|| (question.Type == QuizQuestionType.Input && question.Answers.Length != 0)
+						|| (question.Type == QuizQuestionType.Match && question.Answers.Length != 8))
 					{
 						DisposeImages(questionImages);
 						return;

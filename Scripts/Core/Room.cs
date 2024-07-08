@@ -69,9 +69,9 @@ namespace WizzServer
 			Logger.LogInfo($"Room #{Id} was started with {Clients.GetCountNoLocks()} clients");
 		}
 
-		public void OnClientAnswer(Client client, int id)
+		public void OnClientAnswer(Client client, QuizAnswer answer)
 		{
-			game.OnClientAnswer(client, id);
+			game.OnClientAnswer(client, answer);
 		}
 
 		public void OnGameContinue(Client client)

@@ -10,6 +10,7 @@ namespace WizzServer
 		public static JsonSerializer JsonSerializer { get; } = new()
 		{
 			ContractResolver = new CamelCasePropertyNamesContractResolver(),
+			NullValueHandling = NullValueHandling.Ignore,
 			Formatting = Formatting.Indented
 		};
 
