@@ -6,6 +6,7 @@ namespace WizzServer.Database
 	{
 		public DbSet<DbUser> Users { get; set; }
 		public DbSet<Quiz> Quizzes { get; set; }
+		public DbSet<History> Histories { get; set; }
 		public DbSet<Rating> Ratings { get; set; }
 		public static string ConnectionString { get; set; }
 

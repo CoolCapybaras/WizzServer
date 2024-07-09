@@ -1,5 +1,6 @@
 ﻿using Net.Packets.Clientbound;
 using System.Collections.Concurrent;
+using WizzServer.Database;
 
 namespace WizzServer
 {
@@ -85,13 +86,21 @@ namespace WizzServer
 
 			await room.BroadcastAsync(new GameEndedPacket(globalScore));
 
+			using var db = new ApplicationDbContext();
 			foreach (var client in room.Clients)
 			{
 				if (client.ProfileId == 0)
 					continue;
 
 				client.LastPlayedQuizId = quiz.Id;
+				await db.Histories.AddAsync(new History()
+				{
+					UserId = client.ProfileId,
+					QuizId = quiz.Id,
+					CompleteDate = DateTimeOffset.UtcNow,
+				});
 			}
+			await db.SaveChangesAsync();
 
 			room.Destroy();
 		}
