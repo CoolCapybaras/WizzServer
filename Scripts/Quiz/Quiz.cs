@@ -21,6 +21,8 @@ namespace WizzServer
 		public int QuestionCount { get; set; }
 		public int AuthorId { get; set; }
 		public ModerationStatus ModerationStatus { get; set; }
+		public int Color { get; set; }
+		public float Score { get; set; }
 		[NotMapped]
 		public QuizQuestion[] Questions { get; set; }
 		public int ReferenceCount;
@@ -43,6 +45,8 @@ namespace WizzServer
 			stream.WriteVarInt(QuestionCount);
 			stream.WriteVarInt(AuthorId);
 			stream.WriteVarInt(ModerationStatus);
+			stream.WriteVarInt(Color);
+			stream.WriteVarInt((int)(Score * 10));
 
 			if (includeQuestions)
 			{
@@ -66,6 +70,8 @@ namespace WizzServer
 			quiz.QuestionCount = stream.ReadVarInt();
 			quiz.AuthorId = stream.ReadVarInt();
 			quiz.ModerationStatus = (ModerationStatus)stream.ReadVarInt();
+			quiz.Color = stream.ReadVarInt();
+			quiz.Score = stream.ReadVarInt() / 10f;
 
 			int count = stream.ReadVarInt();
 			quiz.Questions = new QuizQuestion[count];
