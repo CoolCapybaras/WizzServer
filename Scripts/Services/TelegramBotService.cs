@@ -143,7 +143,7 @@ namespace WizzServer.Services
 						int messageId = (int)update["callback_query"]["message"]["message_id"]!;
 
 						using var db = new ApplicationDbContext();
-						var quiz = await db.Quizzes.FirstOrDefaultAsync(x => x.Id == args[0]);
+						var quiz = await db.Quizzes.Include(x => x.Author).FirstOrDefaultAsync(x => x.Id == args[0]);
 						if (quiz == null || quiz.ModerationStatus != ModerationStatus.InModeration)
 						{
 							await ClearQuiz(chatId, messageId, args[2]);
@@ -159,6 +159,8 @@ namespace WizzServer.Services
 
 						await ClearQuiz(chatId, messageId, args[2]);
 						await SendMessage(chatId, text);
+						if (!quiz.Author.IsVk)
+							await SendMessage(quiz.Author.Realname.ToString(), text);
 
 						Logger.LogInfo(text);
 					}

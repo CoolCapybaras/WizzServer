@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using WizzServer.Database;
 using WizzServer.Net;
 
 namespace WizzServer
@@ -20,6 +21,7 @@ namespace WizzServer
 		public string Description { get; set; }
 		public int QuestionCount { get; set; }
 		public int AuthorId { get; set; }
+		public DbUser Author { get; set; }
 		public ModerationStatus ModerationStatus { get; set; }
 		public int Color { get; set; }
 		public float Score { get; set; }
