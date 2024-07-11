@@ -44,7 +44,7 @@ namespace WizzServer
 
 			if (Type == QuizQuestionType.Default || Type == QuizQuestionType.TrueOrFalse)
 				return Id == answer.Id;
-			else if (Type == QuizQuestionType.Multiple || Type == QuizQuestionType.Match)
+			if (Type == QuizQuestionType.Multiple || Type == QuizQuestionType.Match)
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -53,8 +53,8 @@ namespace WizzServer
 				}
 				return true;
 			}
-			else
-				return Input == answer.Input;
+
+			return Input == answer.Input;
 		}
 	}
 }

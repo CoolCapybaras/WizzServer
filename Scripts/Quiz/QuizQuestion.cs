@@ -32,9 +32,9 @@ namespace WizzServer
 			}
 			else if (Type == QuizQuestionType.Multiple)
 			{
-				var answers = RightAnswer.Ids.Select((x) => Answers[x]);
+				var answers = RightAnswer.Ids.Select((x, y) => (Answers[y], x)).ToDictionary(x => x.Item1, x => x.x);
 				Answers.Shuffle();
-				RightAnswer.Ids = answers.Select(x => (byte)Array.IndexOf(Answers, x)).ToArray();
+				RightAnswer.Ids = Answers.Select(x => answers[x]).ToArray();
 			}
 			else if (Type == QuizQuestionType.Match)
 			{
