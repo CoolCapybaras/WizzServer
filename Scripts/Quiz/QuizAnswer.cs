@@ -54,7 +54,7 @@ namespace WizzServer
 				return true;
 			}
 
-			return Input == answer.Input;
+			return string.Compare(Input, answer.Input, StringComparison.OrdinalIgnoreCase) == 0;
 		}
 	}
 }
