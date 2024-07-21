@@ -56,18 +56,19 @@ namespace WizzServer.Services
 				}
 				catch (HttpRequestException)
 				{
-					Logger.LogError("Telegram HttpRequestException");
 					continue;
 				}
-				catch (OperationCanceledException e)
+				catch (OperationCanceledException e) when (e.InnerException is TimeoutException)
 				{
-					Logger.LogError($"[OperationCanceledException] {e.InnerException}");
+					continue;
+				}
+				catch (OperationCanceledException)
+				{
 					break;
 				}
 
 				if (httpMessage.StatusCode != HttpStatusCode.OK)
 				{
-					Logger.LogError($"Telegram wrong status code");
 					httpMessage.Dispose();
 					continue;
 				}
