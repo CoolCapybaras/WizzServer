@@ -38,7 +38,7 @@ namespace WizzServer
 			}
 			else if (Type == QuizQuestionType.Match)
 			{
-				var answers = RightAnswer.Ids.Select((x, y) => (Answers[y], Answers[x])).ToDictionary(x => x.Item1, x => x.Item2);
+				var answers = RightAnswer.Ids.Select((x, y) => (Answers[y], Answers[x + 4])).ToDictionary(x => x.Item1, x => x.Item2);
 				var subquestions = Answers[..4];
 				var subanswers = Answers[4..];
 				subquestions.Shuffle();
